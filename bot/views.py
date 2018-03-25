@@ -16,8 +16,9 @@ def hello_world(request):
 def dispatcher(request):
     print ('POST: ')
     print (request.POST)
-    print ('GET: ')
-    print (request.GET)
+    update = request.POST.get('update', 'empty')
+    print(update)
+    
     response = HttpResponse(json.dumps({'message': 'ок'}),
                              content_type='application/json')
     response.status_code = 200

@@ -16,7 +16,7 @@ def hello_world(request):
 @csrf_exempt
 def dispatcher(request):    
     update = json.loads(request.body.decode('utf-8'))
-    chat_id = update.message.chat.id
+    chat_id = update['message']['chat']['id']
     send_message(chat_id)
     response = HttpResponse(json.dumps({'message': 'ок'}),
                              content_type='application/json')
@@ -25,7 +25,7 @@ def dispatcher(request):
 
 
 def send_message(chat_id):
-    #url = 'https://api.telegram.org/bot565321270:AAGVaNTz5a2pscli1_VnG0vh2Fv0CarejLM/sendMessage'
+    url = 'https://api.telegram.org/bot565321270:AAGVaNTz5a2pscli1_VnG0vh2Fv0CarejLM/sendMessage'
     data = {
         'chat_id':chat_id,
         'text': 'hello world'

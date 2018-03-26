@@ -1,22 +1,18 @@
 from django.shortcuts import render
+from django.conf import settings
 from django.http import HttpResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 import requests
-from owntrackbot.settings import TELEGRAM_TOKEN
 
-url = 'https://api.telegram.org/bot%s/' % (TELEGRAM_TOKEN)
 
-# Create your views here.
-def hello_world(request):
-    response = HttpResponse(json.dumps({'message': 'hello_world'}),
-                             content_type='application/json')
-    response.status_code = 200
-    return response
+url = 'https://api.telegram.org/bot%s/' % (settings.TELEGRAM_TOKEN)
+
 
 @csrf_exempt
 def dispatcher(request):    
     update = json.loads(request.body.decode('utf-8'))
+    print(update)
     chat_id = update['message']['chat']['id']
     send_message(chat_id)
     response = HttpResponse(json.dumps({'message': 'ок'}),
@@ -32,7 +28,8 @@ def send_message(chat_id):
         'text': 'hello world'
     }
 
-    r = requests.post(url, data=data)
+    r = requests.get(method, data=data)
+    print(r.url)
     print (r.status_code)
 
     if r.status_code == 200:

@@ -120,3 +120,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+TELEGRAM_TOKEN = '565321270:AAGVaNTz5a2pscli1_VnG0vh2Fv0CarejLM'

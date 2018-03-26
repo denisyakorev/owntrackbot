@@ -3,8 +3,9 @@ from django.http import HttpResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 import requests
+from owntrackbot.settings import TELEGRAM_TOKEN
 
-
+url = 'https://api.telegram.org/bot%s/' % (TELEGRAM_TOKEN)
 
 # Create your views here.
 def hello_world(request):
@@ -25,7 +26,7 @@ def dispatcher(request):
 
 
 def send_message(chat_id):
-    url = 'https://api.telegram.org/bot565321270:AAGVaNTz5a2pscli1_VnG0vh2Fv0CarejLM/sendMessage'
+    method = url+ 'sendMessage'
     data = {
         'chat_id':chat_id,
         'text': 'hello world'

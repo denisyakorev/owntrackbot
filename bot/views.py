@@ -1,38 +1,38 @@
 from django.shortcuts import render
-from django.conf import settings
 from django.http import HttpResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 import requests
+from bot.models import TelegramBot
 
 
-url = 'https://api.telegram.org/bot%s/' % (settings.TELEGRAM_TOKEN)
 
-
+# Create your views here.
 @csrf_exempt
-def dispatcher(request):    
+def dispatcher(request):
+    '''Принимает запрос, передаёт его в обработчик'''    
+    #Преобразовываем запрос
     update = json.loads(request.body.decode('utf-8'))
-    print(update)
-    chat_id = update['message']['chat']['id']
-    send_message(chat_id)
+    #Передаём в обработчик
+    TelegramBot.dispatch_update(update)    
+
+    #Возвращаем ответ
     response = HttpResponse(json.dumps({'message': 'ок'}),
                              content_type='application/json')
     response.status_code = 200
     return response
 
 
-def send_message(chat_id):
-    method = url+ 'sendMessage'
+def send_message(chat_id, message='hello'):
+    method = TelegramBot.get_send_message_url()
+    
     data = {
         'chat_id':chat_id,
-        'text': 'hello world'
+        'text': message
     }
 
-    r = requests.get(method, data=data)
-    print(r.url)
+    r = requests.post(method, data=data)
     print (r.status_code)
 
-    if r.status_code == 200:
-        return True
-    else:
-        return False
+    return r.status_code == 200
+        

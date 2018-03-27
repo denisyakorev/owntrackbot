@@ -5,8 +5,9 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 class Profile(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     username = models.CharField(max_length=200, verbose_name=_("username"))
+    telegram_id = models.IntegerField(null=True, blank=True)
     categories = models.ManyToManyField("Category", blank=True, verbose_name=_("category"))
     completed_tasks = models.IntegerField(null=True, blank=True)
     spent_time = models.IntegerField(null=True, blank=True)
@@ -23,6 +24,9 @@ class Profile(models.Model):
         verbose_name = _("profile")
         verbose_name_plural = _("profiles")
         ordering = ["-created_at"]
+
+    def get_profile(self, **kwargs):
+        pass
 
 
 class Category(models.Model):

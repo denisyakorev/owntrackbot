@@ -10,7 +10,10 @@ from bot.models import TelegramBot
 # Create your views here.
 @csrf_exempt
 def dispatcher(request):
-    '''Принимает запрос, передаёт его в обработчик'''    
+    '''Принимает запрос, передаёт его в обработчик'''
+    '''Запрос:
+    {'message': {'text': 'Hi', 'from': {'language_code': 'ru-RU', 'is_bot': False, 'first_name': 'Denis', 'id': 347385183}, 'chat': {'type': 'private', 'first_name': 'Denis', 'id': 347385183}, 'date': 1522167580, 'message_id': 52}, 'update_id': 890164791}
+    '''
     #Преобразовываем запрос
     update = json.loads(request.body.decode('utf-8'))
     #Передаём в обработчик

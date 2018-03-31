@@ -34,7 +34,7 @@ class Bot(models.Model):
 			
 
 	def get_send_message_url(self):
-		return self.url_prefix + settings.TELEGRAM_TOKEN + 'sendMessage'
+		return self.url_prefix + settings.TELEGRAM_TOKEN + '/sendMessage'
 
 
 	def get_message(self, message_type='greeting'):

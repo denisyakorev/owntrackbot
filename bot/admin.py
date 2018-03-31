@@ -1,3 +1,5 @@
 from django.contrib import admin
+from bot.models import Bot, Message
 
-# Register your models here.
+admin.site.register(Bot)
+admin.site.register(Message)

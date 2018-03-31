@@ -32,8 +32,7 @@ def send_message(chat_id, message='hello', url=''):
         'text': message
     }
     r = requests.post(url, data=data)
-    print (r.status_code)
-    print ('message: %s' % message)
+    
     return r.status_code == 200
         
 

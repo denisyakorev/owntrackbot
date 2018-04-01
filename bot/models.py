@@ -1,6 +1,7 @@
 from django.db import models
 from core.models import Profile
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 
 
@@ -28,9 +29,28 @@ class Bot(models.Model):
 	url_prefix = models.TextField()
 	objects = BotManager()
 	
-	def get_response(self, update):
-		#Ответим что-нибудь. Пока просто приветствие		
-		return self.get_message(0)
+	def get_response(self, update):		
+		#Получим данные пользователя, или создадим нового
+		user_data = update['message']['from']
+		profile = Profile.objects.get_or_create_profile(
+			client_type= self.messager,
+			user_id= update['message']['from']['id'],
+			username= update['message']['from']['first_name']
+			)		
+		#Проанализируем сообщение
+		in_message = update['message']['text']
+		intent, target = self.analyze_message(in_message)
+		#Если действия понятные - выполним их
+		if intent, target:
+			result = self.make_actions(intent, target)
+			#И сформируем отчёт о действиях
+			if result:
+				return self.get_message(1)
+		
+		#Иначе - получаем сообщение об ошибке
+		out_message = self.get_message(2)
+		#Возвратим сообщение по результату анализа
+		return out_message
 			
 
 	def get_send_message_url(self):
@@ -42,7 +62,7 @@ class Bot(models.Model):
 		try:
 			message = Message.objects.filter(message_type=message_type).order_by('?')[0]
 		except IndexError:
-			message = 'Привет дружище. У меня всё в порядке, но это пока всё, что я могу пока сказать'
+			message = _("Hi. I am alive but it's all I can say now")
 		
 		return message
 
@@ -57,6 +77,7 @@ class Bot(models.Model):
 
 class Message(models.Model):
 	text = models.TextField()
+	lang = models.CharField(max_length=10, blank=True)
 	MESSAGE_TYPES = (
 		(0, 'greeting'),
 		(1, 'approval'),

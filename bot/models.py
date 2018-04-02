@@ -51,6 +51,18 @@ class Bot(models.Model):
 		out_message = self.get_message(2)
 		#Возвратим сообщение по результату анализа
 		return out_message
+
+
+	def analyze_message(message):
+		message = message.lower().strip()
+		#command = self.analyze_command(message[0])
+
+		return True, True
+
+
+	def make_actions(intent, target):
+		
+		return True
 			
 
 	def get_send_message_url(self):

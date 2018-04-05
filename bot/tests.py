@@ -1,16 +1,14 @@
 from django.test import TestCase
-from bot.models.py import Bot
+from bot.models import Bot
 
 # Create your tests here.
-class MessageAnalysysTest(TestCase):
+class BotTestCase(TestCase):
 	def setUp(self):
-		self.bot = Bot.objects.get(messager='telegram')
+		self.bot = Bot.objects.get_or_create_bot('telegram')
 
-
-	def tearDown(self):
-		pass
 
 	def check_out_message(self):
+		
 		"""Проверяет правильность анализа сообщений"""
 		equals = [
 			['?', 
@@ -240,7 +238,7 @@ class MessageAnalysysTest(TestCase):
 		]
 
 		for elem in equals:
-			self.assertEqual(bot.analyze_message(equals[elem][0]), equals[elem][1])
+			self.assertEqual(self.bot.analyze_message(equals[elem][0]), equals[elem][1])
 		
 
 

@@ -41,7 +41,7 @@ class Bot(models.Model):
 		in_message = update['message']['text']
 		intent, target = self.analyze_message(in_message)
 		#Если действия понятные - выполним их
-		if intent, target:
+		if intent and target:
 			result = self.make_actions(intent, target)
 			#И сформируем отчёт о действиях
 			if result:

@@ -53,14 +53,30 @@ class Bot(models.Model):
 		return out_message
 
 
-	def analyze_message(message):
+	def analyze_message(self, message):
 		message = message.lower().strip()
-		#command = self.analyze_command(message[0])
+		command = self.analyze_command(message[0])
 
-		return True, True
+		
+
+		return [command, message]
 
 
-	def make_actions(intent, target):
+	def analyze_command(self, command):
+
+		if command == '?':
+			command = 'read'
+		elif command == '+':
+			command = 'create'
+		elif command == '!':
+			command = 'finish'
+		else:
+			command = False
+
+		return command
+	
+
+	def make_actions(self, intent, target):
 		
 		return True
 			

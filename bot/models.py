@@ -3,6 +3,7 @@ from core.models import Profile
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
+import re
 
 
 class BotManager(models.Manager):
@@ -55,11 +56,49 @@ class Bot(models.Model):
 
 	def analyze_message(self, message):
 		message = message.lower().strip()
+		#Разбираем комманды
 		command = self.analyze_command(message[0])
+		#Разбираем цели и время, которые могут быть указаны в сообщении
+		targets = self.analyze_embeddings(message)
+		result = self.make_actions(command, targets)		
 
+		return [command, target]
+
+
+	def analyze_embeddings(self, message):
+		embedding_obj = {
+			'is_valid':True,
+			'task_name':'',
+			'group_name':'',
+			'categories_name':'',
+			'minutes':0
+			}
 		
+		#Проверяем на наличие не больше одной задачи
+		is_task_valid, embedding_obj['task_name'] = self.get_embedding_result('#', 'tasks')
+		#Проверяем на наличие не больше одной группы
+		is_group_valid, embedding_obj['group_name'] = self.get_embedding_result('@', 'groups')
+		#Проверяем на наличие не больше одной категории
+		is_category_valid, embedding_obj['group_name'] = self.get_embedding_result('*', 'categories')
+		#Проверяем на наличие времени
+		#И преобразуем время, при необходимости
+		return embedding_obj
 
-		return [command, message]
+	
+	def get_embedding_result(self, symbol, names):
+		pattern = re.compile('%s\w+', symbol)
+		entities = pattern.findall(message)
+		if len(entities) > 1: 
+			return False, ('error_too_many_%s', names)
+		elif len(entities) == 0:
+			return True, ""
+		else:
+			return True, entities[0]
+
+
+	def get_embedding_time(self, message):
+		pass		
+		
 
 
 	def analyze_command(self, command):
@@ -71,7 +110,7 @@ class Bot(models.Model):
 		elif command == '!':
 			command = 'finish'
 		else:
-			command = False
+			command = 'update'
 
 		return command
 	

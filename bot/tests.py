@@ -91,7 +91,6 @@ class BotTestCase(TestCase):
 		]
 		
 		for elem in equals:
-			print(elem)
 			command, message = self.bot.analyze_message(elem[0])
 			self.assertEqual(command, elem[1][0])
 			self.assertEqual(message, elem[1][1]) 
@@ -102,15 +101,82 @@ class BotTestCase(TestCase):
 			['?', {
 					'task_name':'',
 					'group_name':'',
-					'categories_name':'',
+					'category_name':'',
+					'is_valid': True,
+					'error':'',
 					'minutes':0
 					} 
 			],
 			['? #unrealtask', {
 					'task_name':'unrealtask',
 					'group_name':'',
-					'categories_name':'',
+					'category_name':'',
+					'is_valid': True,
+					'error':'',
 					'minutes':0
+					} 
+			],
+			['? #unrealtask #realtask', {
+					'task_name':'error_too_many_tasks',
+					'group_name':'',
+					'category_name':'',
+					'is_valid': False,
+					'error':'error_too_many_tasks',
+					'minutes':0
+					} 
+			],
+			['? @realgroup', {
+					'task_name':'',
+					'group_name':'realgroup',
+					'category_name':'',
+					'is_valid': True,
+					'error':'',
+					'minutes':0
+					} 
+			],
+			['+ #newtask @existinggroup *existingcategory', {
+					'task_name':'newtask',
+					'group_name':'existinggroup',
+					'category_name':'existingcategory',
+					'is_valid': True,
+					'error':'',
+					'minutes':0
+					} 
+			],
+			['+ #newtask @existinggroup *existingcategory *existingcategory1', {
+					'task_name':'newtask',
+					'group_name':'existinggroup',
+					'category_name':'error_too_many_categories',
+					'is_valid': False,
+					'error':'error_too_many_tasks',
+					'minutes':0
+					} 
+			],
+			['1h45m #newtask', {
+					'task_name':'newtask',
+					'group_name':'',
+					'category_name':'',
+					'is_valid': True,
+					'error':'',
+					'minutes':105
+					} 
+			],			
+			['10h #newtask', {
+					'task_name':'newtask',
+					'group_name':'',
+					'category_name':'',
+					'is_valid': True,
+					'error':'',
+					'minutes':600
+					} 
+			],
+			['68m #newtask', {
+					'task_name':'newtask',
+					'group_name':'',
+					'category_name':'',
+					'is_valid': True,
+					'error':'',
+					'minutes':68
 					} 
 			],
 
@@ -119,7 +185,8 @@ class BotTestCase(TestCase):
 		]
 
 		for elem in equals:
-			print(elem)
+			result = self.bot.analyze_embeddings(elem[0])
+			self.assertEqual(result, elem[1])
 			 
 
 

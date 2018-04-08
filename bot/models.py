@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 import re
+from core.models import Task, Category, Group
 
 
 class BotManager(models.Manager):
@@ -60,59 +61,13 @@ class Bot(models.Model):
 		command = self.analyze_command(message[0])
 		#Разбираем цели и время, которые могут быть указаны в сообщении
 		targets = self.analyze_embeddings(message)
+		if not targets.is_valid:
+
 		result = self.make_actions(command, targets)		
 
-		return [command, target]
+		return [command, targets]
 
 
-	def analyze_embeddings(self, message):
-		embedding_obj = {
-			'is_valid':True,
-			'task_name':'',
-			'group_name':'',
-			'categories_name':'',
-			'minutes':0
-			}
-		
-		#Проверяем на наличие не больше одной задачи
-		is_task_valid, embedding_obj['task_name'] = self.get_embedding_result('#', 'tasks')
-		#Проверяем на наличие не больше одной группы
-		is_group_valid, embedding_obj['group_name'] = self.get_embedding_result('@', 'groups')
-		#Проверяем на наличие не больше одной категории
-		is_category_valid, embedding_obj['group_name'] = self.get_embedding_result('*', 'categories')
-		#Проверяем на наличие времени
-		#И преобразуем время, при необходимости
-		return embedding_obj
-
-	
-	def get_embedding_result(self, symbol, names):
-		pattern = re.compile('%s\w+', symbol)
-		entities = pattern.findall(message)
-		if len(entities) > 1: 
-			return False, ('error_too_many_%s', names)
-		elif len(entities) == 0:
-			return True, ""
-		else:
-			return True, entities[0]
-
-
-	def get_embedding_time(self, message):
-		pass		
-		
-
-
-	def analyze_command(self, command):
-
-		if command == '?':
-			command = 'read'
-		elif command == '+':
-			command = 'create'
-		elif command == '!':
-			command = 'finish'
-		else:
-			command = 'update'
-
-		return command
 	
 
 	def make_actions(self, intent, target):
@@ -141,6 +96,169 @@ class Bot(models.Model):
 		return self.messager
 
 
+class CommandTarget(models.Model):
+	TARGET_TYPES= (
+		(0, 'task'),
+		(1, 'group'),
+		(2, 'category')
+		)
+
+	is_valid = models.BooleanField(default=True)
+	symbol = models.CharField(max_length=10, blank=True)
+	target_type = models.IntegerField(choises=COMMAND_TYPES, default=0)
+	name = models.CharField(max_length= 200, blank=True)
+	errors = models.CharField(max_length= 200, blank=True)
+
+	def __init__(self, message):
+		self.get_embedding_result('\\'+self.symbol, message)
+		if not self.is_valid:
+			raise ValueError(self.errors)
+			
+
+
+	def get_embedding_result(self, symbol, message):
+		""" 
+		Функция, вычленяющая задачи, группы и категории из
+		сообщения
+		 """
+		string = symbol+'(\w+)'
+		pattern = re.compile(string)
+		entities = pattern.findall(message)
+				
+		if len(entities) > 1: 
+			self.is_valid = False
+			self.errors = 'Too many objects'
+
+		elif len(entities) == 0:
+			self.is_valid = False
+			self.errors = 'Too many objects'
+		
+		else:
+			self.is_valid = True
+			self.name = entities[0]
+
+
+class TaskTarget(models.Model, CommandTarget):
+	symbol= "#"
+	task= models.ForeignKey('Task', on_delete=models.CASCADE, blank=True, null=True) 
+
+
+class GroupTarget(models.Model, CommandTarget):
+	symbol= "@"
+	group= models.ForeignKey('Group', on_delete=models.CASCADE, blank=True, null=True)
+
+
+class CategoryTarget(models.Model, CommandTarget):
+	symbol= "*"
+	category= models.ForeignKey('Category', on_delete=models.CASCADE, blank=True, null=True)
+
+
+class Command(models.Model):
+	message = models.TextField(blank=True)
+	COMMAND_TYPES = (
+		(0, 'create'),
+		(1, 'read'),
+		(2, 'update'),
+		(3, 'delete'),
+		(4, 'finish')
+		)
+	command = models.IntegerField(choises=COMMAND_TYPES, default=1)
+	is_command_valid = models.BooleanField(default=True)
+	
+	task_target = models.ForeignKey('TaskTarget', on_delete=models.SET_NULL)
+	group_target = models.ForeignKey('GroupTarget', on_delete=models.SET_NULL)
+	category_target = models.ForeignKey('CategoryTarget', on_delete=models.SET_NULL)
+
+	is_time_valid = models.BooleanField(default=True)
+	time_errors = models.CharField(max_length= 200, blank=True)
+	minutes = models.IntegerField(blank=True, null=True, default=0)
+
+	created_at = models.DateField(auto_now_add=True)
+	created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
+
+
+	def __init__(self, message, profile):
+		self.message = message.lower().strip()
+		self.profile = profile
+		#Разбираем комманды
+		self.analyze_command(message[0])
+		#Разбираем цели и время, которые могут быть указаны в сообщении
+		self.analyze_embeddings(message)
+		#Пробуем получить все объекты, указанные в комманде
+		self.get_command_objects()
+	
+	
+	def analyze_embeddings(self, message):
+				
+		#Проверяем на наличие не больше одной задачи
+		try:
+			self.task_target = TaskTarget(self.message)
+		except ValueError(e):
+			self.task_target = null
+
+		#Проверяем на наличие не больше одной группы
+		try:
+			self.group_target = GroupTarget(self.message)
+		except ValueError(e):
+			self.group_target = null
+
+		#Проверяем на наличие не больше одной категории
+		try:
+			self.category_target = CategoryTarget(self.message)
+		except ValueError(e):
+			self.category_target = null
+		
+		#Проверяем на наличие времени
+		#И преобразуем время, при необходимости
+		is_time_valid = self.get_embedding_time(message)
+		if not is_time_valid:
+			self.minutes = 0	
+
+
+	def get_embedding_time(self, message):
+		"""
+		Функция, вычленяющая время из сообщения
+		"""
+		hour_pattern = re.compile('(\d+)h')		
+		min_pattern= re.compile('(\d+)m')
+
+		hours = hour_pattern.findall(message)
+		if len(hours) > 1: 
+			self.is_time_valid = False
+			self.time_errors = "Too many words like hours signature"
+			return False
+		elif len(hours) == 0:
+			hours = 0
+		else:
+			hours = int(hours[0])
+
+		minutes = min_pattern.findall(message)
+		if len(minutes) > 1:
+			self.is_time_valid = False
+			self.time_errors = "Too many words like minutes signature" 
+			return False
+		elif len(minutes) == 0:
+			minutes = 0
+		else:
+			minutes = int(minutes[0])
+
+		self.minutes = hours*60 + minutes
+		return True		
+
+
+	def analyze_command(self, command):
+		"""
+		Поиск комманд по ключевым словам
+		"""
+		if command == '?':
+			self.command = 1
+		elif command == '+':
+			self.command = 0
+		elif command == '!':
+			self.command = 4
+		else:
+			self.command = 2
+		
 
 class Message(models.Model):
 	text = models.TextField()

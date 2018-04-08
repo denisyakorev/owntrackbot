@@ -83,7 +83,7 @@ class Profile(models.Model):
 
 	
 class Category(models.Model):
-	name = models.CharField(max_length=200, verbose_name=_("category name"))
+	name = models.CharField(max_length=200, unique=True, verbose_name=_("category name"))
 	profile = models.ForeignKey('Profile', on_delete=models.CASCADE, blank=True, null=True)
 	parent = models.ForeignKey("Category", on_delete=models.CASCADE, blank=True)
 	is_default = models.BinaryField(default=False)
@@ -133,7 +133,7 @@ class Group(models.Model):
 class Task(models.Model):
 	name = models.CharField(max_length=200, verbose_name=_("task"))
 	profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
-	programm = models.ForeignKey(Group, on_delete=models.CASCADE)
+	group = models.ForeignKey(Group, on_delete=models.CASCADE)
 	is_finished = models.BinaryField(default=False)
 	created_at = models.DateField(auto_now_add=True)
 	plan_date = models.DateField(null=True, blank=True)

@@ -41,10 +41,14 @@ class Bot(models.Model):
 			)		
 		#Проанализируем сообщение
 		in_message = update['message']['text']
-		intent, target = self.analyze_message(in_message)
+		try:
+			command = Command(in_message, profile)
+		except ValueError(e):
+			return e
+
 		#Если действия понятные - выполним их
-		if intent and target:
-			result = self.make_actions(intent, target)
+		if command.is_valid:
+			result = command.make_command()
 			#И сформируем отчёт о действиях
 			if result:
 				return self.get_message(1)
@@ -54,26 +58,6 @@ class Bot(models.Model):
 		#Возвратим сообщение по результату анализа
 		return out_message
 
-
-	def analyze_message(self, message):
-		message = message.lower().strip()
-		#Разбираем комманды
-		command = self.analyze_command(message[0])
-		#Разбираем цели и время, которые могут быть указаны в сообщении
-		targets = self.analyze_embeddings(message)
-		if not targets.is_valid:
-
-		result = self.make_actions(command, targets)		
-
-		return [command, targets]
-
-
-	
-
-	def make_actions(self, intent, target):
-		
-		return True
-			
 
 	def get_send_message_url(self):
 		return self.url_prefix + settings.TELEGRAM_TOKEN + '/sendMessage'
@@ -107,12 +91,13 @@ class CommandTarget(models.Model):
 	symbol = models.CharField(max_length=10, blank=True)
 	target_type = models.IntegerField(choises=COMMAND_TYPES, default=0)
 	name = models.CharField(max_length= 200, blank=True)
-	errors = models.CharField(max_length= 200, blank=True)
+	errors = models.CharField(max_length= 200, blank=True)	
 
 	def __init__(self, message):
 		self.get_embedding_result('\\'+self.symbol, message)
 		if not self.is_valid:
 			raise ValueError(self.errors)
+
 			
 
 
@@ -142,15 +127,52 @@ class TaskTarget(models.Model, CommandTarget):
 	symbol= "#"
 	task= models.ForeignKey('Task', on_delete=models.CASCADE, blank=True, null=True) 
 
+	def get_object(self, group_target):
+		try:
+			if group_target:
+				self.task= Group.objects.get(name=self.name, group=group_target.group, is_finished=False)
+			else:
+				self.task= Group.objects.get(name=self.name, is_finished=False)
+		
+		except Group.DoesNotExist:				
+			raise ValueError("Task name incorrect")
+		
+		except Group.MultipleObjectsReturned:
+			raise ValueError("Too many tasks with the same name")
 
+	
 class GroupTarget(models.Model, CommandTarget):
 	symbol= "@"
 	group= models.ForeignKey('Group', on_delete=models.CASCADE, blank=True, null=True)
+
+	def get_object(self, category_target):
+		try:
+			if category_target:
+				self.group= Group.objects.get(name=self.name, category=category_target.category)
+			else:
+				self.group= Group.objects.get(name=self.name)
+		
+		except Group.DoesNotExist:				
+			raise ValueError("Group incorrect")
+		
+		except Group.MultipleObjectsReturned:
+			raise ValueError("Too many groups with the same name")
 
 
 class CategoryTarget(models.Model, CommandTarget):
 	symbol= "*"
 	category= models.ForeignKey('Category', on_delete=models.CASCADE, blank=True, null=True)
+
+	
+	def get_object(self):
+		try:
+			self.category= Category.objects.get(name=self.name)
+		
+		except Category.DoesNotExist:				
+			raise ValueError("Category incorrect")
+		
+		except Category.MultipleObjectsReturned:
+			raise ValueError("Too many categories with the same name")
 
 
 class Command(models.Model):
@@ -163,7 +185,7 @@ class Command(models.Model):
 		(4, 'finish')
 		)
 	command = models.IntegerField(choises=COMMAND_TYPES, default=1)
-	is_command_valid = models.BooleanField(default=True)
+	is_valid = models.BooleanField(default=True)
 	
 	task_target = models.ForeignKey('TaskTarget', on_delete=models.SET_NULL)
 	group_target = models.ForeignKey('GroupTarget', on_delete=models.SET_NULL)
@@ -174,7 +196,7 @@ class Command(models.Model):
 	minutes = models.IntegerField(blank=True, null=True, default=0)
 
 	created_at = models.DateField(auto_now_add=True)
-	created_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
+	profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
 
 	def __init__(self, message, profile):
@@ -184,12 +206,40 @@ class Command(models.Model):
 		self.analyze_command(message[0])
 		#Разбираем цели и время, которые могут быть указаны в сообщении
 		self.analyze_embeddings(message)
-		#Пробуем получить все объекты, указанные в комманде
-		self.get_command_objects()
+		try:
+			self.get_command_objects()
+		except ValueError(e):
+			if self.command != 0:
+				raise ValueError(e)
+			else:
+				pass
+		#Проверим корректность команды
+		self.check_command()
 	
 	
-	def analyze_embeddings(self, message):
-				
+	def check_command(self):
+		pass
+
+
+	def make_command(self):
+		return True		
+	
+	
+	def get_command_objects(self):
+		#Найдём категорию, если она существует
+		if self.category_target:
+			self.category_target.get_object()
+		
+		if self.group_target:
+			self.group_target.get_object(self.category_target)
+
+		if self.task_target:
+			self.task_target.get_object(self.group_target)
+
+
+
+
+	def analyze_embeddings(self, message):				
 		#Проверяем на наличие не больше одной задачи
 		try:
 			self.task_target = TaskTarget(self.message)

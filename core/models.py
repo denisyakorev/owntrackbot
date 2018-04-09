@@ -37,7 +37,7 @@ class ProfileManager(models.Manager):
 		profile = super().create(**kwargs)
 		
 		default_category = Category.objects.create(
-			name= _('default'),
+			name= 'default',
 			profile= profile,
 			is_default= True,
 			is_active= True,
@@ -47,7 +47,7 @@ class ProfileManager(models.Manager):
 			)
 
 		default_group = Group.objects.create(
-			name= _('default'),
+			name= 'default',
 			category= default_category,
 			is_default= True,
 			is_active= True,

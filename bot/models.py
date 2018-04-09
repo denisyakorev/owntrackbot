@@ -87,18 +87,13 @@ class CommandTarget(models.Model):
 		(2, 'category')
 		)
 
-	is_valid = models.BooleanField(default=True)
-	symbol = models.CharField(max_length=10, blank=True)
+	is_valid = models.BooleanField(default=True)	
 	target_type = models.IntegerField(choises=COMMAND_TYPES, default=0)
 	name = models.CharField(max_length= 200, blank=True)
 	errors = models.CharField(max_length= 200, blank=True)	
 
 	def __init__(self, message):
-		self.get_embedding_result('\\'+self.symbol, message)
-		if not self.is_valid:
-			raise ValueError(self.errors)
-
-			
+		self.get_embedding_result('\\'+self.symbol, message)					
 
 
 	def get_embedding_result(self, symbol, message):
@@ -111,28 +106,27 @@ class CommandTarget(models.Model):
 		entities = pattern.findall(message)
 				
 		if len(entities) > 1: 
-			self.is_valid = False
-			self.errors = 'Too many objects'
+			raise ValueError('Too many objects')
 
 		elif len(entities) == 0:
-			self.is_valid = False
-			self.errors = 'Too many objects'
+			raise ValueError('There is no objects')
 		
 		else:
 			self.is_valid = True
 			self.name = entities[0]
 
 
+	class Meta():
+		is_abstract= True
+
+
 class TaskTarget(models.Model, CommandTarget):
-	symbol= "#"
+	symbol = models.CharField(max_length=10, blank=True, default='#')
 	task= models.ForeignKey('Task', on_delete=models.CASCADE, blank=True, null=True) 
 
 	def get_object(self, group_target):
 		try:
-			if group_target:
-				self.task= Group.objects.get(name=self.name, group=group_target.group, is_finished=False)
-			else:
-				self.task= Group.objects.get(name=self.name, is_finished=False)
+			self.task= Group.objects.get(name=self.name, group=group_target.group, is_finished=False)			
 		
 		except Group.DoesNotExist:				
 			raise ValueError("Task name incorrect")
@@ -142,15 +136,13 @@ class TaskTarget(models.Model, CommandTarget):
 
 	
 class GroupTarget(models.Model, CommandTarget):
-	symbol= "@"
+	symbol = models.CharField(max_length=10, blank=True, default='@')
 	group= models.ForeignKey('Group', on_delete=models.CASCADE, blank=True, null=True)
 
+	
 	def get_object(self, category_target):
 		try:
-			if category_target:
-				self.group= Group.objects.get(name=self.name, category=category_target.category)
-			else:
-				self.group= Group.objects.get(name=self.name)
+			self.group= Group.objects.get(name=self.name, category=category_target.category)			
 		
 		except Group.DoesNotExist:				
 			raise ValueError("Group incorrect")
@@ -159,20 +151,64 @@ class GroupTarget(models.Model, CommandTarget):
 			raise ValueError("Too many groups with the same name")
 
 
+	def get_embedding_result(self, symbol, message):
+		""" 
+		Функция, вычленяющая задачи, группы и категории из
+		сообщения
+		 """
+		string = symbol+'(\w+)'
+		pattern = re.compile(string)
+		entities = pattern.findall(message)
+				
+		if len(entities) > 1: 
+			raise ValueError('Too many objects')
+
+		elif len(entities) == 0:
+			self.is_valid = True
+			self.name = 'default'
+		
+		else:
+			self.is_valid = True
+			self.name = entities[0]
+
+
+
+
 class CategoryTarget(models.Model, CommandTarget):
-	symbol= "*"
+	symbol = models.CharField(max_length=10, blank=True, default='*')
 	category= models.ForeignKey('Category', on_delete=models.CASCADE, blank=True, null=True)
 
 	
-	def get_object(self):
+	def get_object(self, profile):
 		try:
-			self.category= Category.objects.get(name=self.name)
+			self.category= Category.objects.get(name=self.name, profile=profile)
 		
 		except Category.DoesNotExist:				
 			raise ValueError("Category incorrect")
 		
 		except Category.MultipleObjectsReturned:
 			raise ValueError("Too many categories with the same name")
+
+
+	def get_embedding_result(self, symbol, message):
+		""" 
+		Функция, вычленяющая задачи, группы и категории из
+		сообщения
+		 """
+		string = symbol+'(\w+)'
+		pattern = re.compile(string)
+		entities = pattern.findall(message)
+				
+		if len(entities) > 1: 
+			raise ValueError('Too many objects')			
+
+		elif len(entities) == 0:
+			self.is_valid = True
+			self.name = 'default'
+		
+		else:
+			self.is_valid = True
+			self.name = entities[0]
 
 
 class Command(models.Model):
@@ -207,8 +243,9 @@ class Command(models.Model):
 		#Разбираем цели и время, которые могут быть указаны в сообщении
 		self.analyze_embeddings(message)
 		try:
-			self.get_command_objects()
+			self.get_command_objects(profile)
 		except ValueError(e):
+			#Если комманда на создание объекта, то ошибка с поиском объектов допускается
 			if self.command != 0:
 				raise ValueError(e)
 			else:
@@ -218,23 +255,56 @@ class Command(models.Model):
 	
 	
 	def check_command(self):
-		pass
+		"""Проверяет корректность введённых данных
+		в зависимости от типа комманды"""
+
+		if self.command == 0:			
+			result = self.check_targets_for_creation()
+		elif self.command == 1:
+			result = self.check_targets_for_read()
+		elif self.command == 2:
+			result = self.check_targets_for_update()
+		else:
+			result = self.check_targets_for_finish()
+
+		return result
+
+
+	def check_targets_for_creation(self):
+		"""
+		Проверяет и дополняет цели для комманды создания
+		Для создания нового объекта важно, чтобы нижестоящие объекты были не указаны
+		А вышестоящие - либо не указаны, либо указаны правильно
+		"""
+
+		#Пройдёмся вверх по иерархии - сначала посмотрим задачу, 
+		#потом группу, потом - категорию
+		if self.task_target and self.task_target.task:
+			raise ValueError("Task you want to create already exists")
+
+		#Нашедшийся объект должен быть без ссылки на живую сущность
+		is_task = self.task_target and not self.task_target.task 
+
+		if not is_task and self.group_target.group:
+			raise ValueError("Group you want to create already exists")
+
+		is_group = not is_task and self.group_target and not self.group_target.group
+
+		
+		#Потом смотрим его родителей - они должны быть с ссылками
+
+			
 
 
 	def make_command(self):
 		return True		
 	
 	
-	def get_command_objects(self):
+	def get_command_objects(self, profile):
 		#Найдём категорию, если она существует
-		if self.category_target:
-			self.category_target.get_object()
-		
-		if self.group_target:
-			self.group_target.get_object(self.category_target)
-
-		if self.task_target:
-			self.task_target.get_object(self.group_target)
+		self.category_target.get_object(profile)		
+		self.group_target.get_object(self.category_target)		
+		self.task_target.get_object(self.group_target)
 
 
 
@@ -244,19 +314,15 @@ class Command(models.Model):
 		try:
 			self.task_target = TaskTarget(self.message)
 		except ValueError(e):
-			self.task_target = null
+			if e == 'There is no objects':
+				self.task_target = null
+			else:
+				raise ValueError(e)
 
 		#Проверяем на наличие не больше одной группы
-		try:
-			self.group_target = GroupTarget(self.message)
-		except ValueError(e):
-			self.group_target = null
-
+		self.group_target = GroupTarget(self.message)	
 		#Проверяем на наличие не больше одной категории
-		try:
-			self.category_target = CategoryTarget(self.message)
-		except ValueError(e):
-			self.category_target = null
+		self.category_target = CategoryTarget(self.message)		
 		
 		#Проверяем на наличие времени
 		#И преобразуем время, при необходимости

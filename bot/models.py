@@ -5,6 +5,11 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 import re
 from core.models import Task, Category, Group
+from core.models import TaskManager, GroupManager
+import logging
+import json
+
+logger = logging.getLogger(__name__)
 
 
 class BotManager(models.Manager):
@@ -43,15 +48,22 @@ class Bot(models.Model):
 		in_message = update['message']['text']
 		try:
 			command = Command(in_message, profile)
-		except ValueError(e):
-			return e
+		except Exception(e):
+			logger.info("Update: %s", json.dumps(update))
+			logger.exception(e)
+			raise ValueError("Something wrong with your command")
 
 		#Если действия понятные - выполним их
-		if command.is_valid:
-			result = command.make_command()
-			#И сформируем отчёт о действиях
-			if result:
-				return self.get_message(1)
+		if command.command == 0:
+			self.create_objects(command)
+		elif command.command == 1:
+			result= self.read_objects(command)
+		elif command.command == 2:
+			self.update_objects(command)
+		elif command.command == 4:
+			self.finish_objects(command)
+		
+			
 		
 		#Иначе - получаем сообщение об ошибке
 		out_message = self.get_message(2)
@@ -87,7 +99,6 @@ class CommandTarget(models.Model):
 		(2, 'category')
 		)
 
-	is_valid = models.BooleanField(default=True)	
 	target_type = models.IntegerField(choises=COMMAND_TYPES, default=0)
 	name = models.CharField(max_length= 200, blank=True)
 	errors = models.CharField(max_length= 200, blank=True)	
@@ -112,7 +123,6 @@ class CommandTarget(models.Model):
 			raise ValueError('There is no objects')
 		
 		else:
-			self.is_valid = True
 			self.name = entities[0]
 
 
@@ -124,33 +134,12 @@ class TaskTarget(models.Model, CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='#')
 	task= models.ForeignKey('Task', on_delete=models.CASCADE, blank=True, null=True) 
 
-	def get_object(self, group_target):
-		try:
-			self.task= Group.objects.get(name=self.name, group=group_target.group, is_finished=False)			
 		
-		except Group.DoesNotExist:				
-			raise ValueError("Task name incorrect")
-		
-		except Group.MultipleObjectsReturned:
-			raise ValueError("Too many tasks with the same name")
-
-	
 class GroupTarget(models.Model, CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='@')
 	group= models.ForeignKey('Group', on_delete=models.CASCADE, blank=True, null=True)
 
 	
-	def get_object(self, category_target):
-		try:
-			self.group= Group.objects.get(name=self.name, category=category_target.category)			
-		
-		except Group.DoesNotExist:				
-			raise ValueError("Group incorrect")
-		
-		except Group.MultipleObjectsReturned:
-			raise ValueError("Too many groups with the same name")
-
-
 	def get_embedding_result(self, symbol, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
@@ -164,13 +153,10 @@ class GroupTarget(models.Model, CommandTarget):
 			raise ValueError('Too many objects')
 
 		elif len(entities) == 0:
-			self.is_valid = True
 			self.name = 'default'
 		
 		else:
-			self.is_valid = True
 			self.name = entities[0]
-
 
 
 
@@ -179,17 +165,6 @@ class CategoryTarget(models.Model, CommandTarget):
 	category= models.ForeignKey('Category', on_delete=models.CASCADE, blank=True, null=True)
 
 	
-	def get_object(self, profile):
-		try:
-			self.category= Category.objects.get(name=self.name, profile=profile)
-		
-		except Category.DoesNotExist:				
-			raise ValueError("Category incorrect")
-		
-		except Category.MultipleObjectsReturned:
-			raise ValueError("Too many categories with the same name")
-
-
 	def get_embedding_result(self, symbol, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
@@ -203,11 +178,9 @@ class CategoryTarget(models.Model, CommandTarget):
 			raise ValueError('Too many objects')			
 
 		elif len(entities) == 0:
-			self.is_valid = True
 			self.name = 'default'
 		
 		else:
-			self.is_valid = True
 			self.name = entities[0]
 
 
@@ -235,89 +208,82 @@ class Command(models.Model):
 	profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
 
-	def __init__(self, message, profile):
+	def __init__(self, message, profile, bot):
 		self.message = message.lower().strip()
 		self.profile = profile
 		#Разбираем комманды
 		self.analyze_command(message[0])
 		#Разбираем цели и время, которые могут быть указаны в сообщении
 		self.analyze_embeddings(message)
-		try:
-			self.get_command_objects(profile)
-		except ValueError(e):
-			#Если комманда на создание объекта, то ошибка с поиском объектов допускается
-			if self.command != 0:
-				raise ValueError(e)
-			else:
-				pass
-		#Проверим корректность команды
-		self.check_command()
-	
-	
-	def check_command(self):
-		"""Проверяет корректность введённых данных
-		в зависимости от типа комманды"""
-
-		if self.command == 0:			
-			result = self.check_targets_for_creation()
-		elif self.command == 1:
-			result = self.check_targets_for_read()
-		elif self.command == 2:
-			result = self.check_targets_for_update()
-		else:
-			result = self.check_targets_for_finish()
-
-		return result
-
-
-	def check_targets_for_creation(self):
-		"""
-		Проверяет и дополняет цели для комманды создания
-		Для создания нового объекта важно, чтобы нижестоящие объекты были не указаны
-		А вышестоящие - либо не указаны, либо указаны правильно
-		"""
-
-		#Пройдёмся вверх по иерархии - сначала посмотрим задачу, 
-		#потом группу, потом - категорию
-		if self.task_target and self.task_target.task:
-			raise ValueError("Task you want to create already exists")
-
-		#Нашедшийся объект должен быть без ссылки на живую сущность
-		is_task = self.task_target and not self.task_target.task 
-
-		if not is_task and self.group_target.group:
-			raise ValueError("Group you want to create already exists")
-
-		is_group = not is_task and self.group_target and not self.group_target.group
-
-		
-		#Потом смотрим его родителей - они должны быть с ссылками
-
-			
+		#Выполняем команду
+		self.make_command()
 
 
 	def make_command(self):
-		return True		
+		if self.command == 0:
+			self.create_objects()
+		elif self.command == 1:
+			result= self.read_objects()
+			return result
+
+		elif self.command == 2:
+			self.update_objects()
+		elif self.command == 4:
+			self.finish_objects()
+
+		return True
+
+
+	def read_objects(self):
+		"""
+		Получает информацию по запрашиваемому объекту
+		"""
+
+
+	def create_objects(self):
+		"""
+		Определяем, какой объект требуется создать
+		и отправляем запрос на создание
+		"""
+		if self.task_target:
+			#Если указана задача, значит создаём её
+			TaskManager.create_new_task(
+				task_name= self.task_target.name,
+				group_name= self.group_target.name,
+				category_name= self.category_target.name,
+				profile= self.profile
+				)
+			return True
+		else:
+			#Если задача не указана
+			if self.group_target.name != 'default':
+				#Но указана какая-то группа
+				GroupManager.create_new_group(
+					group_name= self.group_target.name,
+					category_name= self.category_target.name,
+					profile= self.profile
+					)
+				return True
+			elif self.category_target.name != 'default':
+				#Если группа не указана, но указана категория
+				CategoryManager.create_new_category(
+					category_name= self.category_target.name,
+					profile= self.profile
+					)
+				return True
+			else:
+				return False
+
 	
-	
-	def get_command_objects(self, profile):
-		#Найдём категорию, если она существует
-		self.category_target.get_object(profile)		
-		self.group_target.get_object(self.category_target)		
-		self.task_target.get_object(self.group_target)
-
-
-
-
 	def analyze_embeddings(self, message):				
 		#Проверяем на наличие не больше одной задачи
 		try:
 			self.task_target = TaskTarget(self.message)
 		except ValueError(e):
-			if e == 'There is no objects':
-				self.task_target = null
-			else:
+			if e != 'There is no objects':						
 				raise ValueError(e)
+			else:
+				pass
 
 		#Проверяем на наличие не больше одной группы
 		self.group_target = GroupTarget(self.message)	

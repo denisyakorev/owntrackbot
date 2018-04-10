@@ -82,6 +82,18 @@ class Profile(models.Model):
 		ordering = ["-created_at"]
 
 	
+class CategoryManager(models.Manager):
+	def create_new_category(self, category_name, profile):
+		category = super().create(
+			name= category_name,
+			profile= profile,
+			completed_tasks= 0,
+			spent_time= 0,
+			last_activity= datetime.datetime.now()						
+			)
+		return group
+
+
 class Category(models.Model):
 	name = models.CharField(max_length=200, unique=True, verbose_name=_("category name"))
 	profile = models.ForeignKey('Profile', on_delete=models.CASCADE, blank=True, null=True)
@@ -91,7 +103,7 @@ class Category(models.Model):
 	aim = models.TextField(verbose_name=_("what person want to get"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField()
+	last_activity = models.DateField(default=datetime.datetime.now())
 	created_at = models.DateField(auto_now_add=True)
 
 	def __unicode__(self):
@@ -106,11 +118,24 @@ class Category(models.Model):
 		ordering = ["-last_activity"]
 
 
+class GroupManager(models.Manager):
+	def create_new_group(self, group_name, category_name, profile):
+		category = Category.objects.get(name=category_name, profile=profile)
+		group = super().create(
+			name= group_name,
+			category= category,
+			completed_tasks= 0,
+			spent_time= 0,
+			last_activity= datetime.datetime.now()						
+			)
+		return group
+
+
 class Group(models.Model):
 	name = models.CharField(max_length=200, verbose_name=_("programm name"))
 	category = models.ForeignKey(Category, on_delete=models.CASCADE)
-	is_default = models.BinaryField(default=False)
-	is_active = models.BinaryField(default=True)
+	is_default = models.BooleanField(default=False)
+	is_active = models.BooleanField(default=True)
 	description = models.TextField(verbose_name=_("what is this programm for"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
@@ -130,16 +155,33 @@ class Group(models.Model):
 		ordering = ["-last_activity"]
 
 
+class TaskManager(models.Manager):
+
+	def create_new_task(self, task_name, group_name, category_name, profile):
+		category = Category.objects.get(name=category_name, profile=profile)
+		group = Group.objects.get(name=group_name, category=category)
+		task = super().create(
+			name= task_name,
+			profile= profile,
+			group= group,
+			spent_time= 0,
+			last_activity= datetime.datetime.now()			
+			)
+		return task
+
+
 class Task(models.Model):
 	name = models.CharField(max_length=200, verbose_name=_("task"))
 	profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 	group = models.ForeignKey(Group, on_delete=models.CASCADE)
-	is_finished = models.BinaryField(default=False)
+	is_finished = models.BooleanField(default=False)
 	created_at = models.DateField(auto_now_add=True)
 	plan_date = models.DateField(null=True, blank=True)
 	finish_date = models.DateField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
+	last_activity = models.DateField()
 	description = models.TextField(verbose_name=_("what is this task about"), blank=True)
+	objects = TaskManager()
 
 
 	def __unicode__(self):

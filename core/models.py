@@ -94,6 +94,51 @@ class CategoryManager(models.Manager):
 		return group
 
 
+	def get_category_info(self, category_name, profile):
+		"""
+		Возвращает информацию о категории:
+		- название категории
+		- суммарное время, затраченное на задачи категории
+		- количество выполненных задач
+		- дата последней активности		
+		- перечень входящих в категорию групп 
+		с временем, затраченным на них				
+		
+		"""
+		category = super().get(name=category_name, profile=profile)
+		groups = Group.objects.filter(category=category)
+		
+		groups_info = ""
+		for group in groups:
+			group_info += group.name+": "+ group.spent_time + "\n"
+		
+		info = [
+		{
+			'param_name':_('name'),
+			'param_value': category.name 
+		},				
+		{
+			'param_name':_('spent time'),
+			'param_value': category.spent_time 
+		},
+		{
+			'param_name':_('completed tasks'),
+			'param_value': category.completed_tasks 
+		},
+		{
+			'param_name':_('last activity'),
+			'param_value': category.last_activity 
+		},
+		{
+			'param_name':_('info about groups in category'),
+			'param_value': group_info 
+		}
+
+		]
+
+		return info
+
+
 class Category(models.Model):
 	name = models.CharField(max_length=200, unique=True, verbose_name=_("category name"))
 	profile = models.ForeignKey('Profile', on_delete=models.CASCADE, blank=True, null=True)
@@ -129,6 +174,61 @@ class GroupManager(models.Manager):
 			last_activity= datetime.datetime.now()						
 			)
 		return group
+
+
+	def get_group_info(self, group_name, category_name, profile):
+		"""
+		Возвращает информацию о группе задач:
+		- название группы
+		- дата создания
+		- название категории
+		- суммарное время, затраченное на задачи группы
+		- количество выполненных задач
+		- дата последней активности		
+		- перечень входящих в группу активных задач 
+		с временем, затраченным на них				
+		
+		"""
+		category = Category.objects.get(name=category_name, profile=profile)
+		group = super().get(name=group_name, category=category)
+		tasks = Task.objects.filter(group= group, is_finished= False)
+		tasks_info = ""
+		for task in tasks:
+			tasks_info += task.name+": "+ task.spent_time + "\n"
+		
+		info = [
+		{
+			'param_name':_('name'),
+			'param_value': group.name 
+		},
+		{
+			'param_name':_('created at'),
+			'param_value': group.created_at 
+		},
+		{
+			'param_name':_('category'),
+			'param_value': group.category.name 
+		},		
+		{
+			'param_name':_('spent time'),
+			'param_value': group.spent_time 
+		},
+		{
+			'param_name':_('completed tasks'),
+			'param_value': group.completed_tasks 
+		},
+		{
+			'param_name':_('last activity'),
+			'param_value': group.last_activity 
+		},
+		{
+			'param_name':_('info about active tasks'),
+			'param_value': tasks_info 
+		}
+
+		]
+
+		return info
 
 
 class Group(models.Model):
@@ -168,6 +268,55 @@ class TaskManager(models.Manager):
 			last_activity= datetime.datetime.now()			
 			)
 		return task
+
+
+	def get_task_info(self, task_name, group_name, category_name, profile):
+		"""
+		Возвращает информацию о задаче:
+		- название задачи
+		- название группы
+		- дата создания
+		- потраченное на задачу время
+		- последняя активность 
+		
+		"""
+		category = Category.objects.get(name=category_name, profile=profile)
+		group = Group.objects.get(name=group_name, category=category)
+		task = super().get(
+			name= task_name,
+			profile= profile,
+			group= group			
+			)
+		info = [
+		{
+			'param_name':_('name'),
+			'param_value': task.name 
+		},
+		{
+			'param_name':_('group'),
+			'param_value': task.group.name 
+		},
+		{
+			'param_name':_('created at'),
+			'param_value': task.created_at 
+		},
+		{
+			'param_name':_('created at'),
+			'param_value': task.created_at 
+		},
+		{
+			'param_name':_('spent time'),
+			'param_value': task.spent_time 
+		},
+		{
+			'param_name':_('last activity'),
+			'param_value': task.last_activity 
+		}
+
+		]
+
+		return info
+		
 
 
 class Task(models.Model):

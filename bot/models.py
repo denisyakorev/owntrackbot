@@ -71,6 +71,83 @@ class Bot(models.Model):
 		return out_message
 
 
+	def create_objects(self, command):
+		"""
+		Определяем, какой объект требуется создать
+		и отправляем запрос на создание
+		"""
+		if command.task_target:
+			#Если указана задача, значит создаём её
+			TaskManager.create_new_task(
+				task_name= command.task_target.name,
+				group_name= command.group_target.name,
+				category_name= command.category_target.name,
+				profile= command.profile
+				)
+			return True
+		else:
+			#Если задача не указана
+			if command.group_target.name != 'default':
+				#Но указана какая-то группа
+				GroupManager.create_new_group(
+					group_name= command.group_target.name,
+					category_name= command.category_target.name,
+					profile= command.profile
+					)
+				return True
+			elif command.category_target.name != 'default':
+				#Если группа не указана, но указана категория
+				CategoryManager.create_new_category(
+					category_name= command.category_target.name,
+					profile= command.profile
+					)
+				return True
+			else:
+				return False
+
+
+	def read_objects(self, command):
+		"""
+		Выясняем по какому объекту нужно получить информацию
+		и запрашиваем её
+		"""
+		if command.task_target:
+			#Если указана задача, значит создаём её
+			result= TaskManager.get_task_info(
+				task_name= command.task_target.name,
+				group_name= command.group_target.name,
+				category_name= command.category_target.name,
+				profile= command.profile
+				)
+
+		else:
+			#Если задача не указана
+			if command.group_target.name != 'default':
+				#Но указана какая-то группа
+				result= GroupManager.get_group_info(
+					group_name= command.group_target.name,
+					category_name= command.category_target.name,
+					profile= command.profile
+					)
+				
+			elif command.category_target.name != 'default':
+				#Если группа не указана, но указана категория
+				result= CategoryManager.get_category_info(
+					category_name= command.category_target.name,
+					profile= command.profile
+					)
+				
+			else:
+				raise ValueError("There is no the object")
+
+		result_string = ''
+		for elem in result:
+			result_string += elem.param_name+ ': '+elem.param_value+'\n'
+
+		return result_string
+
+
+
 	def get_send_message_url(self):
 		return self.url_prefix + settings.TELEGRAM_TOKEN + '/sendMessage'
 
@@ -233,46 +310,6 @@ class Command(models.Model):
 
 		return True
 
-
-	def read_objects(self):
-		"""
-		Получает информацию по запрашиваемому объекту
-		"""
-
-
-	def create_objects(self):
-		"""
-		Определяем, какой объект требуется создать
-		и отправляем запрос на создание
-		"""
-		if self.task_target:
-			#Если указана задача, значит создаём её
-			TaskManager.create_new_task(
-				task_name= self.task_target.name,
-				group_name= self.group_target.name,
-				category_name= self.category_target.name,
-				profile= self.profile
-				)
-			return True
-		else:
-			#Если задача не указана
-			if self.group_target.name != 'default':
-				#Но указана какая-то группа
-				GroupManager.create_new_group(
-					group_name= self.group_target.name,
-					category_name= self.category_target.name,
-					profile= self.profile
-					)
-				return True
-			elif self.category_target.name != 'default':
-				#Если группа не указана, но указана категория
-				CategoryManager.create_new_category(
-					category_name= self.category_target.name,
-					profile= self.profile
-					)
-				return True
-			else:
-				return False
 
 	
 	def analyze_embeddings(self, message):				

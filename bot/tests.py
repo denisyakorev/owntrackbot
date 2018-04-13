@@ -6,11 +6,18 @@ class BotTestCase(TestCase):
 	
 	def setUp(self):
 		self.bot = Bot.objects.get_or_create_bot('telegram')
+		self.profile = Profile.objects.get_or_create_profile(
+			client_type= self.bot.messager,
+			user_id= 1,
+			username= 'denis'
+			)
+		self.last_activity = self.profile.last_activity
+
 
 	def test_message_out(self):
 		
 		equals = [
-			['?', ['read', 'user_profile'] ],
+			['?', 'spent_time: 0\ncompleted tasks: 0\nlast activity: '+self.last_activity+'\ninfo about groups in category: '],
 
 			['? #unrealtask', ['read', 'error_task_does_not_exist']],
 
@@ -91,9 +98,8 @@ class BotTestCase(TestCase):
 		]
 		
 		for elem in equals:
-			command, message = self.bot.analyze_message(elem[0])
-			self.assertEqual(command, elem[1][0])
-			self.assertEqual(message, elem[1][1]) 
+			out_message = self.bot.make_command(elem[0], self.profile)
+			self.assertEqual(out_message, elem[1]) 
 
 
 	def test_embeddings(self):

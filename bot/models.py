@@ -4,7 +4,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 import re
-from core.models import Task, Category, Group
+from core.models import Task, Category, Group, Transaction
 from core.models import TaskManager, GroupManager
 import logging
 import json
@@ -46,31 +46,51 @@ class Bot(models.Model):
 			)		
 		#Проанализируем сообщение
 		in_message = update['message']['text']
+		out_message = self.make_command(in_message, profile)
+		return out_message
+
+	def make_command(self, in_message, profile)
 		try:
 			command = Command(in_message, profile)
 		except Exception(e):
 			logger.info("Update: %s", json.dumps(update))
 			logger.exception(e)
-			raise ValueError("Something wrong with your command")
+			return _("Something wrong with your command")
 
 		#Если действия понятные - выполним их
 		if command.command == 0:
 			self.create_objects(command)
-		elif command.command == 1:
-			result= self.read_objects(command)
-		elif command.command == 2:
-			self.update_objects(command)
-		elif command.command == 4:
-			self.finish_objects(command)
-		
+			message = self.get_message(1)
 			
+		elif command.command == 1:
+			message= self.read_objects(command)
+			
+		elif command.command == 2:
+			if command.is_time_valid and command.task_target:
+				self.update_objects(command)
+				message = self.get_message(1)+"\n"
+				message += self.read_objects(command)				
+			else:
+				message = _("You should write right time and right task")
+						
+
+		elif command.command == 4:
+			if command.task_target:
+				self.finish_objects(command)
+				message = self.get_message(1)+"\n"
+				message += self.read_objects(command)
+			else:
+				message = _("You should write right task")
 		
-		#Иначе - получаем сообщение об ошибке
-		out_message = self.get_message(2)
 		#Возвратим сообщение по результату анализа
-		return out_message
+		return message
 
 
+	def finish_objects(self, command):
+		command.task_target.task.finish_task()
+		return True
+
+	
 	def create_objects(self, command):
 		"""
 		Определяем, какой объект требуется создать
@@ -138,13 +158,24 @@ class Bot(models.Model):
 					)
 				
 			else:
-				raise ValueError("There is no the object")
+				result = ProfileManager.get_profile_info(
+					profile= command.profile
+					)
 
 		result_string = ''
 		for elem in result:
 			result_string += elem.param_name+ ': '+elem.param_value+'\n'
 
 		return result_string
+
+
+	def update_objects(self, command):
+		Transaction.objects.add_transaction(
+			task= command.task_target.task,
+			spent_time= command.minutes
+			)
+		return True
+		
 
 
 
@@ -277,7 +308,7 @@ class Command(models.Model):
 	group_target = models.ForeignKey('GroupTarget', on_delete=models.SET_NULL)
 	category_target = models.ForeignKey('CategoryTarget', on_delete=models.SET_NULL)
 
-	is_time_valid = models.BooleanField(default=True)
+	is_time_valid = models.BooleanField(default=False)
 	time_errors = models.CharField(max_length= 200, blank=True)
 	minutes = models.IntegerField(blank=True, null=True, default=0)
 
@@ -292,24 +323,7 @@ class Command(models.Model):
 		self.analyze_command(message[0])
 		#Разбираем цели и время, которые могут быть указаны в сообщении
 		self.analyze_embeddings(message)
-		#Выполняем команду
-		self.make_command()
-
-
-	def make_command(self):
-		if self.command == 0:
-			self.create_objects()
-		elif self.command == 1:
-			result= self.read_objects()
-			return result
-
-		elif self.command == 2:
-			self.update_objects()
-		elif self.command == 4:
-			self.finish_objects()
-
-		return True
-
+		
 
 	
 	def analyze_embeddings(self, message):				
@@ -362,7 +376,8 @@ class Command(models.Model):
 			minutes = int(minutes[0])
 
 		self.minutes = hours*60 + minutes
-		return True		
+		self.is_time_valid = True
+		return self.is_time_valid		
 
 
 	def analyze_command(self, command):

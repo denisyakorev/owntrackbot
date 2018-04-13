@@ -27,6 +27,10 @@ class ProfileManager(models.Manager):
 		return profile
 
 
+	def get_profile_info(self, profile):
+
+
+
 	def create_new_pool(self, **kwargs):
 		"""Создаёт новый набор объектов, необходимый для 
 		формирования профиля. А именно:
@@ -81,6 +85,19 @@ class Profile(models.Model):
 		verbose_name_plural = _("profiles")
 		ordering = ["-created_at"]
 
+
+	def update_profile(self):
+		self.last_activity = datetime.datetime.now()
+		self.spent_time = 0
+		self.completed_tasks = 0
+		categories = Category.objects.filter(profile=self)
+		for category in categories:
+			self.spent_time += category.minutes
+			self.completed_tasks += category.completed_tasks
+
+		self.save()		
+		return True
+
 	
 class CategoryManager(models.Manager):
 	def create_new_category(self, category_name, profile):
@@ -105,33 +122,29 @@ class CategoryManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
-		category = super().get(name=category_name, profile=profile)
-		groups = Group.objects.filter(category=category)
+		categories = Category.objects.filter(profile=profile)
 		
-		groups_info = ""
-		for group in groups:
-			group_info += group.name+": "+ group.spent_time + "\n"
+		categories_info = ""
+		for category in categories:
+			categories_info += category.name+": "+ category.spent_time + "\n"
 		
 		info = [
-		{
-			'param_name':_('name'),
-			'param_value': category.name 
-		},				
+			
 		{
 			'param_name':_('spent time'),
-			'param_value': category.spent_time 
+			'param_value': profile.spent_time 
 		},
 		{
 			'param_name':_('completed tasks'),
-			'param_value': category.completed_tasks 
+			'param_value': profile.completed_tasks 
 		},
 		{
 			'param_name':_('last activity'),
-			'param_value': category.last_activity 
+			'param_value': profile.last_activity 
 		},
 		{
 			'param_name':_('info about groups in category'),
-			'param_value': group_info 
+			'param_value': categories_info 
 		}
 
 		]
@@ -161,6 +174,20 @@ class Category(models.Model):
 		verbose_name = _("category")
 		verbose_name_plural = _("categories")
 		ordering = ["-last_activity"]
+
+
+	def update_category(self):
+		self.last_activity = datetime.datetime.now()
+		self.spent_time = 0
+		self.completed_tasks = 0
+		groups = Group.objects.filter(category=self)
+		for group in groups:
+			self.spent_time += group.minutes
+			self.completed_tasks += group.completed_tasks
+
+		self.save()
+		self.profile.update_profile()
+		return True
 
 
 class GroupManager(models.Manager):
@@ -255,6 +282,22 @@ class Group(models.Model):
 		ordering = ["-last_activity"]
 
 
+	def update_group(self):
+		self.last_activity = datetime.datetime.now()
+		self.spent_time = 0
+		self.completed_tasks = 0
+		tasks = Task.objects.filter(group=self)
+		for task in tasks:
+			self.spent_time += task.minutes
+			if task.is_finished:
+				self.completed_tasks += 1
+
+		self.save()
+		self.category.update_category()
+		return True
+		
+		
+
 class TaskManager(models.Manager):
 
 	def create_new_task(self, task_name, group_name, category_name, profile):
@@ -345,6 +388,22 @@ class Task(models.Model):
 		ordering = ["-finish_date"]
 
 
+	def update_task(self, transaction):
+		self.last_activity = datetime.datetime.now()
+		self.spent_time += transaction.minutes
+		self.save()
+		self.group.update_group()
+		return True
+
+	def finish_task(self):
+		self.finish_date = datetime.datetime.now()
+		self.is_finished = True
+		self.save()
+		self.group.update_group()
+		return True
+
+
+
 def user_directory_path(instance, filename):
 		# file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
 		return 'user_{0}/{1}'.format(instance.profile.id, filename)
@@ -362,6 +421,19 @@ class Achievment(models.Model):
 		verbose_name_plural = _("achievments")
 
 
+class TransactionManager(models.Manager):
+
+	def add_transaction(self, task, minutes):
+		transaction = super().create(
+			task= task,
+			spent_time= minutes
+			)
+		task.update_task()
+
+		return True
+
+
+
 class Transaction(models.Model):
 	task = models.ForeignKey(Task, on_delete=models.CASCADE)
 	spent_time = models.IntegerField()
@@ -372,6 +444,7 @@ class Transaction(models.Model):
 		verbose_name_plural = _("transactions")
 		ordering = ["-created_at"]
 		
+
 
 
 # Create your models here.

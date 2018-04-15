@@ -1,5 +1,6 @@
 from django.test import TestCase
 from bot.models import Bot
+from core.models import Profile
 
 # Create your tests here.
 class BotTestCase(TestCase):
@@ -7,9 +8,8 @@ class BotTestCase(TestCase):
 	def setUp(self):
 		self.bot = Bot.objects.get_or_create_bot('telegram')
 		self.profile = Profile.objects.get_or_create_profile(
-			client_type= self.bot.messager,
 			user_id= 1,
-			username= 'denis'
+			client_type= 'telegram'
 			)
 		self.last_activity = self.profile.last_activity
 
@@ -17,7 +17,7 @@ class BotTestCase(TestCase):
 	def test_message_out(self):
 		
 		equals = [
-			['?', 'spent_time: 0\ncompleted tasks: 0\nlast activity: '+self.last_activity+'\ninfo about groups in category: '],
+			['?', 'spent_time: 0\ncompleted tasks: 0\nlast activity: '+self.last_activity+'\ninfo about categories in profile: '],
 
 			['? #unrealtask', ['read', 'error_task_does_not_exist']],
 
@@ -98,6 +98,7 @@ class BotTestCase(TestCase):
 		]
 		
 		for elem in equals:
+			print(elem)
 			out_message = self.bot.make_command(elem[0], self.profile)
 			self.assertEqual(out_message, elem[1]) 
 

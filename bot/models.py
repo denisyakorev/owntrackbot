@@ -49,7 +49,7 @@ class Bot(models.Model):
 		out_message = self.make_command(in_message, profile)
 		return out_message
 
-	def make_command(self, in_message, profile)
+	def make_command(self, in_message, profile):
 		try:
 			command = Command(in_message, profile)
 		except Exception(e):
@@ -207,20 +207,20 @@ class CommandTarget(models.Model):
 		(2, 'category')
 		)
 
-	target_type = models.IntegerField(choises=COMMAND_TYPES, default=0)
+	target_type = models.IntegerField(choices=TARGET_TYPES, default=0)
 	name = models.CharField(max_length= 200, blank=True)
 	errors = models.CharField(max_length= 200, blank=True)	
 
-	def __init__(self, message):
-		self.get_embedding_result('\\'+self.symbol, message)					
+	def __init__(choices, *args, **kwargs):
+		super().__init__(choices, *args, **kwargs)
+		get_embedding_result(kwargs['message'])
 
-
-	def get_embedding_result(self, symbol, message):
+	def get_embedding_result(self, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
 		сообщения
 		 """
-		string = symbol+'(\w+)'
+		string = self.symbol+'(\w+)'
 		pattern = re.compile(string)
 		entities = pattern.findall(message)
 				
@@ -235,17 +235,17 @@ class CommandTarget(models.Model):
 
 
 	class Meta():
-		is_abstract= True
+		abstract= True
 
 
-class TaskTarget(models.Model, CommandTarget):
+class TaskTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='#')
-	task= models.ForeignKey('Task', on_delete=models.CASCADE, blank=True, null=True) 
+	task= models.ForeignKey(Task, on_delete=models.CASCADE, blank=True, null=True) 
 
 		
-class GroupTarget(models.Model, CommandTarget):
+class GroupTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='@')
-	group= models.ForeignKey('Group', on_delete=models.CASCADE, blank=True, null=True)
+	group= models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
 
 	
 	def get_embedding_result(self, symbol, message):
@@ -268,9 +268,9 @@ class GroupTarget(models.Model, CommandTarget):
 
 
 
-class CategoryTarget(models.Model, CommandTarget):
+class CategoryTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='*')
-	category= models.ForeignKey('Category', on_delete=models.CASCADE, blank=True, null=True)
+	category= models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True)
 
 	
 	def get_embedding_result(self, symbol, message):
@@ -301,12 +301,12 @@ class Command(models.Model):
 		(3, 'delete'),
 		(4, 'finish')
 		)
-	command = models.IntegerField(choises=COMMAND_TYPES, default=1)
+	command = models.IntegerField(choices=COMMAND_TYPES, default=1)
 	is_valid = models.BooleanField(default=True)
 	
-	task_target = models.ForeignKey('TaskTarget', on_delete=models.SET_NULL)
-	group_target = models.ForeignKey('GroupTarget', on_delete=models.SET_NULL)
-	category_target = models.ForeignKey('CategoryTarget', on_delete=models.SET_NULL)
+	task_target = models.ForeignKey('TaskTarget', on_delete=models.SET_NULL, null=True, blank=True)
+	group_target = models.ForeignKey('GroupTarget', on_delete=models.SET_NULL, null=True, blank=True)
+	category_target = models.ForeignKey('CategoryTarget', on_delete=models.SET_NULL, null=True, blank=True)
 
 	is_time_valid = models.BooleanField(default=False)
 	time_errors = models.CharField(max_length= 200, blank=True)
@@ -316,7 +316,8 @@ class Command(models.Model):
 	profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
 
-	def __init__(self, message, profile, bot):
+	def __init__(self, message, profile, bot, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 		self.message = message.lower().strip()
 		self.profile = profile
 		#Разбираем комманды

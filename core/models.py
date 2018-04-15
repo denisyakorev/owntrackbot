@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 import datetime
+from django.utils import timezone
 
 # Create your models here.
 
@@ -22,12 +23,50 @@ class ProfileManager(models.Manager):
 			params['register_from'] = client_type
 			params['register_id'] = user_id
 			#Передаём их в функцию - фабрику
-			profile = self.create_new_pool(params)
+			profile = self.create_new_pool(**params)
 
 		return profile
 
 
 	def get_profile_info(self, profile):
+		"""
+		Возвращает информацию о категории:
+		- название категории
+		- суммарное время, затраченное на задачи категории
+		- количество выполненных задач
+		- дата последней активности		
+		- перечень входящих в категорию групп 
+		с временем, затраченным на них				
+		
+		"""
+		categories = Category.objects.filter(profile=profile)
+		
+		categories_info = ""
+		for category in categories:
+			categories_info += category.name+": "+ category.spent_time + "\n"
+		
+		info = [
+			
+		{
+			'param_name':_('spent time'),
+			'param_value': profile.spent_time 
+		},
+		{
+			'param_name':_('completed tasks'),
+			'param_value': profile.completed_tasks 
+		},
+		{
+			'param_name':_('last activity'),
+			'param_value': profile.last_activity 
+		},
+		{
+			'param_name':_('info about categories in profile'),
+			'param_value': categories_info 
+		}
+
+		]
+
+		return info
 
 
 
@@ -39,26 +78,27 @@ class ProfileManager(models.Manager):
 		- сам профиль
 		"""
 		profile = super().create(**kwargs)
+		cur_time = timezone.now()
 		
-		default_category = Category.objects.create(
+		default_category = Category(
 			name= 'default',
 			profile= profile,
 			is_default= True,
 			is_active= True,
 			completed_tasks= 0,
-			spent_time= 0,
-			last_activity= datetime.datetime.now()
+			spent_time= 0
 			)
+		default_category.save()
 
-		default_group = Group.objects.create(
+		default_group = Group(
 			name= 'default',
 			category= default_category,
 			is_default= True,
 			is_active= True,
 			completed_tasks= 0,
-			spent_time= 0,
-			last_activity= datetime.datetime.now()
+			spent_time= 0
 			)
+		default_group.save()
 
 		return profile
 
@@ -71,8 +111,9 @@ class Profile(models.Model):
 	register_id = models.IntegerField(null=True, blank=True, unique=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField()
+	last_activity = models.DateField(default=timezone.now())
 	created_at = models.DateField(auto_now_add=True)
+	objects = ProfileManager()
 
 	def __unicode__(self):
 		return self.username
@@ -122,29 +163,30 @@ class CategoryManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
-		categories = Category.objects.filter(profile=profile)
+		category = Category.objects.get(name=category_name, profile=profile)
+		groups = Group.objects.filter(category=category)
 		
-		categories_info = ""
-		for category in categories:
-			categories_info += category.name+": "+ category.spent_time + "\n"
+		groups_info = ""
+		for group in groups:
+			groups_info += group.name+": "+ group.spent_time + "\n"
 		
 		info = [
 			
 		{
 			'param_name':_('spent time'),
-			'param_value': profile.spent_time 
+			'param_value': category.spent_time 
 		},
 		{
 			'param_name':_('completed tasks'),
-			'param_value': profile.completed_tasks 
+			'param_value': category.completed_tasks 
 		},
 		{
 			'param_name':_('last activity'),
-			'param_value': profile.last_activity 
+			'param_value': category.last_activity 
 		},
 		{
 			'param_name':_('info about groups in category'),
-			'param_value': categories_info 
+			'param_value': groups_info 
 		}
 
 		]
@@ -161,7 +203,7 @@ class Category(models.Model):
 	aim = models.TextField(verbose_name=_("what person want to get"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField(default=datetime.datetime.now())
+	last_activity = models.DateField(default=timezone.now())
 	created_at = models.DateField(auto_now_add=True)
 
 	def __unicode__(self):
@@ -266,7 +308,7 @@ class Group(models.Model):
 	description = models.TextField(verbose_name=_("what is this programm for"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField()
+	last_activity = models.DateField(default=timezone.now())	
 	created_at = models.DateField(auto_now_add=True)
 	
 
@@ -371,7 +413,7 @@ class Task(models.Model):
 	plan_date = models.DateField(null=True, blank=True)
 	finish_date = models.DateField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField()
+	last_activity = models.DateField(default=timezone.now())
 	description = models.TextField(verbose_name=_("what is this task about"), blank=True)
 	objects = TaskManager()
 

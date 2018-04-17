@@ -39,25 +39,33 @@ class ProfileManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
+		spent_time = profile.spent_time
+		if not spent_time:
+			spent_time = 0
+
+		completed_tasks = profile.completed_tasks
+		if not completed_tasks:
+			completed_tasks = 0
+
 		categories = Category.objects.filter(profile=profile)
 		
 		categories_info = ""
 		for category in categories:
-			categories_info += category.name+": "+ category.spent_time + "\n"
+			categories_info += category.name+": "+ str(category.spent_time) + "\n"
 		
 		info = [
 			
 		{
 			'param_name':_('spent time'),
-			'param_value': profile.spent_time 
+			'param_value': spent_time 
 		},
 		{
 			'param_name':_('completed tasks'),
-			'param_value': profile.completed_tasks 
+			'param_value': completed_tasks 
 		},
 		{
 			'param_name':_('last activity'),
-			'param_value': profile.last_activity 
+			'param_value': profile.last_activity.strftime("%Y-%m-%d")  
 		},
 		{
 			'param_name':_('info about categories in profile'),
@@ -197,9 +205,9 @@ class CategoryManager(models.Manager):
 class Category(models.Model):
 	name = models.CharField(max_length=200, unique=True, verbose_name=_("category name"))
 	profile = models.ForeignKey('Profile', on_delete=models.CASCADE, blank=True, null=True)
-	parent = models.ForeignKey("Category", on_delete=models.CASCADE, blank=True)
-	is_default = models.BinaryField(default=False)
-	is_active = models.BinaryField(default=True)
+	parent = models.ForeignKey("Category", on_delete=models.CASCADE, blank=True, null=True)
+	is_default = models.BooleanField(default=False)
+	is_active = models.BooleanField(default=True)
 	aim = models.TextField(verbose_name=_("what person want to get"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
 	spent_time = models.IntegerField(null=True, blank=True)
@@ -395,7 +403,7 @@ class TaskManager(models.Manager):
 		},
 		{
 			'param_name':_('last activity'),
-			'param_value': task.last_activity 
+			'param_value': task.last_activity.strftime("%Y-%m-%d") 
 		}
 
 		]

@@ -46,15 +46,15 @@ class Bot(models.Model):
 			)		
 		#Проанализируем сообщение
 		in_message = update['message']['text']
-		out_message = self.make_command(in_message, profile)
+		out_message = self.make_command(in_message, profile, update)
 		return out_message
 
-	def make_command(self, in_message, profile):
+	def make_command(self, in_message, profile, update):
 		try:
-			command = Command(in_message, profile)
-		except Exception(e):
+			command = Command(in_message, profile, self)
+		except Exception:
 			logger.info("Update: %s", json.dumps(update))
-			logger.exception(e)
+			logger.exception("Something wrong with your command")
 			return _("Something wrong with your command")
 
 		#Если действия понятные - выполним их
@@ -133,7 +133,7 @@ class Bot(models.Model):
 		"""
 		if command.task_target:
 			#Если указана задача, значит создаём её
-			result= TaskManager.get_task_info(
+			result= Task.objects.get_task_info(
 				task_name= command.task_target.name,
 				group_name= command.group_target.name,
 				category_name= command.category_target.name,
@@ -144,7 +144,7 @@ class Bot(models.Model):
 			#Если задача не указана
 			if command.group_target.name != 'default':
 				#Но указана какая-то группа
-				result= GroupManager.get_group_info(
+				result= Group.objects.get_group_info(
 					group_name= command.group_target.name,
 					category_name= command.category_target.name,
 					profile= command.profile
@@ -152,20 +152,24 @@ class Bot(models.Model):
 				
 			elif command.category_target.name != 'default':
 				#Если группа не указана, но указана категория
-				result= CategoryManager.get_category_info(
+				result= Category.objects.get_category_info(
 					category_name= command.category_target.name,
 					profile= command.profile
 					)
 				
 			else:
-				result = ProfileManager.get_profile_info(
+				result = Profile.objects.get_profile_info(
 					profile= command.profile
 					)
 
 		result_string = ''
-		for elem in result:
-			result_string += elem.param_name+ ': '+elem.param_value+'\n'
-
+		index = 0
+		last_index = len(result)-1
+		for elem in result:			
+			result_string += str(elem['param_name'])+ ': '+str(elem['param_value'])
+			if index != last_index:
+				result_string += "\n"
+			index += 1
 		return result_string
 
 
@@ -211,16 +215,16 @@ class CommandTarget(models.Model):
 	name = models.CharField(max_length= 200, blank=True)
 	errors = models.CharField(max_length= 200, blank=True)	
 
-	def __init__(choices, *args, **kwargs):
-		super().__init__(choices, *args, **kwargs)
-		get_embedding_result(kwargs['message'])
+	def __init__(self, message, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.get_embedding_result(message=message)
 
 	def get_embedding_result(self, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
 		сообщения
 		 """
-		string = self.symbol+'(\w+)'
+		string = '\\' + self.symbol+'(\w+)'
 		pattern = re.compile(string)
 		entities = pattern.findall(message)
 				
@@ -248,12 +252,12 @@ class GroupTarget(CommandTarget):
 	group= models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
 
 	
-	def get_embedding_result(self, symbol, message):
+	def get_embedding_result(self, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
 		сообщения
 		 """
-		string = symbol+'(\w+)'
+		string = '\\' + self.symbol+'(\w+)'
 		pattern = re.compile(string)
 		entities = pattern.findall(message)
 				
@@ -273,12 +277,12 @@ class CategoryTarget(CommandTarget):
 	category= models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True)
 
 	
-	def get_embedding_result(self, symbol, message):
+	def get_embedding_result(self, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
 		сообщения
 		 """
-		string = symbol+'(\w+)'
+		string = '\\' + self.symbol+'(\w+)'
 		pattern = re.compile(string)
 		entities = pattern.findall(message)
 				
@@ -330,17 +334,18 @@ class Command(models.Model):
 	def analyze_embeddings(self, message):				
 		#Проверяем на наличие не больше одной задачи
 		try:
-			self.task_target = TaskTarget(self.message)
-		except ValueError(e):
+			self.task_target = TaskTarget(message=self.message)
+		except ValueError as err:
+			e = err.args[0]
 			if e != 'There is no objects':						
 				raise ValueError(e)
 			else:
 				pass
 
 		#Проверяем на наличие не больше одной группы
-		self.group_target = GroupTarget(self.message)	
+		self.group_target = GroupTarget(message=self.message)	
 		#Проверяем на наличие не больше одной категории
-		self.category_target = CategoryTarget(self.message)		
+		self.category_target = CategoryTarget(message=self.message)		
 		
 		#Проверяем на наличие времени
 		#И преобразуем время, при необходимости

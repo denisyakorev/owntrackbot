@@ -1,9 +1,9 @@
-from django.test import TestCase
+from django.test import TransactionTestCase, TestCase
 from bot.models import Bot
 from core.models import Profile
 
 # Create your tests here.
-class BotTestCase(TestCase):
+class BotTestCase(TransactionTestCase):
 	
 	def setUp(self):
 		self.bot = Bot.objects.get_or_create_bot('telegram')
@@ -20,19 +20,33 @@ class BotTestCase(TestCase):
 		equals = [
 			['?', 'spent time: 0\ncompleted tasks: 0\nlast activity: '+self.last_activity+'\ninfo about categories in profile: default: 0\n'],
 
-			['? #unrealtask', ['read', 'error_task_does_not_exist']],
+			['? #unrealtask', 'Task does not exist'],
 
-			['? #realtask',	['read', 'task_id']],
+			['+ #newtask',"Task created successfully"],
 
-			['? #realtaskWithTwinInOtherGroup',['read', 'error_too_more_objects']],
+			['+ #newtask',"Task with the name already exists in the group"],
 
-			['?#realtask',['read', 'task_id']],
+			['? #newtask',	"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 0\nlast activity: "+self.last_activity],
 
-			['? @realgroup',['read', 'group_id']],
+			['+ @newgroup',"Group created successfully"],
 
-			['? @unrealgroup',['read', 'error_group_does_not_exist']],
+			['+ #newtask @newgroup',"Task created successfully"],
 
-			['? *realcategory',['read', 'category_id']],
+			['? #newtask', "name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 0\nlast activity: "+self.last_activity],
+
+			['?#newtask', "name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 0\nlast activity: "+self.last_activity],
+
+			['? @newgroup',"name: newgroup\ncreated at: "+self.last_activity+"\ncategory: default\nspent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 0\n"],
+
+			['? @unrealgroup',"Group does not exist"],
+
+			['+ *newcategory',"Category created successfully"],
+
+			['+ @newgroup *newcategory',"Group created successfully"],
+
+			['+ #newtask @newgroup *newcategory',"Task created successfully"],
+
+			['? *newcategory',['read', 'category_id']],
 
 			['? *unrealcategory',['read', 'error_category_does_not_exist']],
 
@@ -101,6 +115,7 @@ class BotTestCase(TestCase):
 		for elem in equals:
 			print(elem)
 			out_message = self.bot.make_command(elem[0], self.profile, elem)
+			print(out_message+"\n\n")
 			self.assertEqual(out_message, elem[1]) 
 
 
@@ -194,6 +209,7 @@ class BotTestCase(TestCase):
 
 		for elem in equals:
 			result = self.bot.analyze_embeddings(elem[0])
+			print (result)
 			self.assertEqual(result, elem[1])
 			 
 

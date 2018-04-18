@@ -157,7 +157,7 @@ class CategoryManager(models.Manager):
 			spent_time= 0,
 			last_activity= datetime.datetime.now()						
 			)
-		return group
+		return category
 
 
 	def get_category_info(self, category_name, profile):
@@ -171,12 +171,15 @@ class CategoryManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
-		category = Category.objects.get(name=category_name, profile=profile)
+		try:
+			category = Category.objects.get(name=category_name, profile=profile)
+		except Category.DoesNotExist:
+			raise ValueError(_("Category does not exist"))
 		groups = Group.objects.filter(category=category)
 		
 		groups_info = ""
 		for group in groups:
-			groups_info += group.name+": "+ group.spent_time + "\n"
+			groups_info += group.name+": "+ str(group.spent_time) + "\n"
 		
 		info = [
 			
@@ -190,7 +193,7 @@ class CategoryManager(models.Manager):
 		},
 		{
 			'param_name':_('last activity'),
-			'param_value': category.last_activity 
+			'param_value': category.last_activity.strftime("%Y-%m-%d") 
 		},
 		{
 			'param_name':_('info about groups in category'),
@@ -213,6 +216,7 @@ class Category(models.Model):
 	spent_time = models.IntegerField(null=True, blank=True)
 	last_activity = models.DateField(default=timezone.now())
 	created_at = models.DateField(auto_now_add=True)
+	objects = CategoryManager()
 
 	def __unicode__(self):
 		return self.name
@@ -224,7 +228,7 @@ class Category(models.Model):
 		verbose_name = _("category")
 		verbose_name_plural = _("categories")
 		ordering = ["-last_activity"]
-
+		unique_together = ("name", "profile")
 
 	def update_category(self):
 		self.last_activity = datetime.datetime.now()
@@ -241,6 +245,7 @@ class Category(models.Model):
 
 
 class GroupManager(models.Manager):
+	
 	def create_new_group(self, group_name, category_name, profile):
 		category = Category.objects.get(name=category_name, profile=profile)
 		group = super().create(
@@ -267,11 +272,15 @@ class GroupManager(models.Manager):
 		
 		"""
 		category = Category.objects.get(name=category_name, profile=profile)
-		group = super().get(name=group_name, category=category)
+		try:
+			group = super().get(name=group_name, category=category)
+		except Group.DoesNotExist:
+			raise ValueError(_('Group does not exist'))
+
 		tasks = Task.objects.filter(group= group, is_finished= False)
 		tasks_info = ""
 		for task in tasks:
-			tasks_info += task.name+": "+ task.spent_time + "\n"
+			tasks_info += task.name+": "+ str(task.spent_time) + "\n"
 		
 		info = [
 		{
@@ -296,7 +305,7 @@ class GroupManager(models.Manager):
 		},
 		{
 			'param_name':_('last activity'),
-			'param_value': group.last_activity 
+			'param_value': group.last_activity.strftime("%Y-%m-%d") 
 		},
 		{
 			'param_name':_('info about active tasks'),
@@ -318,6 +327,7 @@ class Group(models.Model):
 	spent_time = models.IntegerField(null=True, blank=True)
 	last_activity = models.DateField(default=timezone.now())	
 	created_at = models.DateField(auto_now_add=True)
+	objects = GroupManager()
 	
 
 	def __unicode__(self):
@@ -330,6 +340,7 @@ class Group(models.Model):
 		verbose_name = _("programm")
 		verbose_name_plural = _("programms")
 		ordering = ["-last_activity"]
+		unique_together = ("name", "category")
 
 
 	def update_group(self):
@@ -360,6 +371,7 @@ class TaskManager(models.Manager):
 			spent_time= 0,
 			last_activity= datetime.datetime.now()			
 			)
+
 		return task
 
 
@@ -373,13 +385,17 @@ class TaskManager(models.Manager):
 		- последняя активность 
 		
 		"""
-		category = Category.objects.get(name=category_name, profile=profile)
-		group = Group.objects.get(name=group_name, category=category)
-		task = super().get(
-			name= task_name,
-			profile= profile,
-			group= group			
-			)
+		category= Category.objects.get(name=category_name, profile=profile)
+		group= Group.objects.get(name=group_name, category=category)
+		try:
+			task = super().get(
+				name= task_name,
+				profile= profile,
+				group= group			
+				)
+		except Task.DoesNotExist:
+			raise ValueError(_('Task does not exist'))
+
 		info = [
 		{
 			'param_name':_('name'),
@@ -392,11 +408,7 @@ class TaskManager(models.Manager):
 		{
 			'param_name':_('created at'),
 			'param_value': task.created_at 
-		},
-		{
-			'param_name':_('created at'),
-			'param_value': task.created_at 
-		},
+		},		
 		{
 			'param_name':_('spent time'),
 			'param_value': task.spent_time 
@@ -436,6 +448,7 @@ class Task(models.Model):
 		verbose_name = _("task")
 		verbose_name_plural = _("tasks")
 		ordering = ["-finish_date"]
+		unique_together = ("name", "group")
 
 
 	def update_task(self, transaction):
@@ -488,6 +501,7 @@ class Transaction(models.Model):
 	task = models.ForeignKey(Task, on_delete=models.CASCADE)
 	spent_time = models.IntegerField()
 	created_at = models.DateField(auto_now_add=True)
+	objects = TransactionManager()
 
 	class Meta:
 		verbose_name = _("transaction")

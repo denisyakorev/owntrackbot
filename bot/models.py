@@ -8,6 +8,7 @@ from core.models import Task, Category, Group, Transaction
 from core.models import TaskManager, GroupManager
 import logging
 import json
+from django.db.utils import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,7 @@ class Bot(models.Model):
 
 		#Если действия понятные - выполним их
 		if command.command == 0:
-			self.create_objects(command)
-			message = self.get_message(1)
+			message = self.create_objects(command)			
 			
 		elif command.command == 1:
 			message= self.read_objects(command)
@@ -98,30 +98,41 @@ class Bot(models.Model):
 		"""
 		if command.task_target:
 			#Если указана задача, значит создаём её
-			TaskManager.create_new_task(
-				task_name= command.task_target.name,
-				group_name= command.group_target.name,
-				category_name= command.category_target.name,
-				profile= command.profile
-				)
-			return True
-		else:
-			#Если задача не указана
-			if command.group_target.name != 'default':
-				#Но указана какая-то группа
-				GroupManager.create_new_group(
+			try:
+				Task.objects.create_new_task(
+					task_name= command.task_target.name,
 					group_name= command.group_target.name,
 					category_name= command.category_target.name,
 					profile= command.profile
 					)
-				return True
+				return _("Task created successfully")
+			except IntegrityError:
+				return _("Task with the name already exists in the group")
+		else:
+			#Если задача не указана
+			if command.group_target.name != 'default':
+				#Но указана какая-то группа
+				try:
+					Group.objects.create_new_group(
+						group_name= command.group_target.name,
+						category_name= command.category_target.name,
+						profile= command.profile
+						)
+					return _("Group created successfully")
+				except IntegrityError:
+					return _("Group with the name already exists in the category")
+			
 			elif command.category_target.name != 'default':
 				#Если группа не указана, но указана категория
-				CategoryManager.create_new_category(
-					category_name= command.category_target.name,
-					profile= command.profile
-					)
-				return True
+				try:
+					Category.objects.create_new_category(
+						category_name= command.category_target.name,
+						profile= command.profile
+						)
+					return _("Category created successfully")
+				except IntegrityError:
+					return _("Category with the name already exists in the profile")
+			
 			else:
 				return False
 
@@ -132,35 +143,45 @@ class Bot(models.Model):
 		и запрашиваем её
 		"""
 		if command.task_target:
-			#Если указана задача, значит создаём её
-			result= Task.objects.get_task_info(
-				task_name= command.task_target.name,
-				group_name= command.group_target.name,
-				category_name= command.category_target.name,
-				profile= command.profile
-				)
-
-		else:
-			#Если задача не указана
-			if command.group_target.name != 'default':
-				#Но указана какая-то группа
-				result= Group.objects.get_group_info(
+			try:
+				result= Task.objects.get_task_info(
+					task_name= command.task_target.name,
 					group_name= command.group_target.name,
 					category_name= command.category_target.name,
 					profile= command.profile
 					)
+			except ValueError as err:
+				return err.args[0]
+
+		else:
+			#Если задача не указана
+			
+			if command.group_target.name != 'default':
+				#Но указана какая-то группа
+				try:
+					result= Group.objects.get_group_info(
+						group_name= command.group_target.name,
+						category_name= command.category_target.name,
+						profile= command.profile
+						)
+				except ValueError as err:
+					return err.args[0]
 				
 			elif command.category_target.name != 'default':
 				#Если группа не указана, но указана категория
-				result= Category.objects.get_category_info(
-					category_name= command.category_target.name,
-					profile= command.profile
-					)
+				try:
+					result= Category.objects.get_category_info(
+						category_name= command.category_target.name,
+						profile= command.profile
+						)
+				except ValueError as err:
+					return err.args[0]
 				
-			else:
+			else:				
 				result = Profile.objects.get_profile_info(
 					profile= command.profile
 					)
+
 
 		result_string = ''
 		index = 0

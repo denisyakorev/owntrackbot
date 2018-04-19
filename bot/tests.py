@@ -46,27 +46,17 @@ class BotTestCase(TransactionTestCase):
 
 			['+ #newtask @newgroup *newcategory',"Task created successfully"],
 
-			['? *newcategory',['read', 'category_id']],
+			['? *newcategory',"spent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about groups in category: newgroup: 0\n"],
 
-			['? *unrealcategory',['read', 'error_category_does_not_exist']],
+			['? *unrealcategory',"Category does not exist"],
 
-			['+ #newtask',['create', 'task_newtask in group default in category default']],
+			['+ #newtask @newgroup2 *newcategory',"Something wrong with your command"],
 
-			['+ #existingtask',['create', 'error_task_exists']],
+			['+ #newtask #newtask2 @existinggroup *existingcategory',"Something wrong with your command"],
 
-			['+ #newtask @existinggroup',['create', 'task_newtask in group existinggroup in category default']],
+			['+ #newtask @newgroup @existinggroup1 *newcategory',"Something wrong with your command"],
 
-			['+ #newtask @existinggroup *existingcategory',['create', 'task_newtask in group existinggroup in category existingcategory']],
-
-			['+ #newtask @newgroup *existingcategory',['create', 'error_group_does_not_exists']],
-
-			['+ #newtask @existinggroup *newcategory',['create', 'error_category_does_not_exists']],
-
-			['+ #newtask #newtask2 @existinggroup *existingcategory',['create', 'error_too_many_tasks']],
-
-			['+ #newtask @existinggroup @existinggroup1 *existingcategory',['create', 'error_too_many_groups']],
-
-			['+ #newtask @existinggroup *existingcategory *existingcategory1',['create', 'error_too_many_categories']],
+			['+ #newtask @newgroup *newcategory *newcategory1',"Something wrong with your command"],
 
 			['+ @existinggroup *existingcategory',['create', 'error_group_exists']],
 

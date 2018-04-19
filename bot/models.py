@@ -108,6 +108,8 @@ class Bot(models.Model):
 				return _("Task created successfully")
 			except IntegrityError:
 				return _("Task with the name already exists in the group")
+			except Exception as err:
+				return err.args[0]
 		else:
 			#Если задача не указана
 			if command.group_target.name != 'default':
@@ -121,6 +123,8 @@ class Bot(models.Model):
 					return _("Group created successfully")
 				except IntegrityError:
 					return _("Group with the name already exists in the category")
+				except Exception as err:
+					return err.args[0]
 			
 			elif command.category_target.name != 'default':
 				#Если группа не указана, но указана категория
@@ -132,6 +136,8 @@ class Bot(models.Model):
 					return _("Category created successfully")
 				except IntegrityError:
 					return _("Category with the name already exists in the profile")
+				except Exception as err:
+					return err.args[0]
 			
 			else:
 				return False

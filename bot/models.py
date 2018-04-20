@@ -67,18 +67,22 @@ class Bot(models.Model):
 			
 		elif command.command == 2:
 			if command.is_time_valid and command.task_target:
-				self.update_objects(command)
-				message = self.get_message(1)+"\n"
-				message += self.read_objects(command)				
+				result = self.update_objects(command, profile)
+				if result:
+					message = self.read_objects(command)
+				else:
+					message = _("Something wrong with your command")				
 			else:
 				message = _("You should write right time and right task")
 						
 
 		elif command.command == 4:
 			if command.task_target:
-				self.finish_objects(command)
-				message = self.get_message(1)+"\n"
-				message += self.read_objects(command)
+				result = self.finish_objects(command, profile)
+				if result:
+					message = self.read_objects(command)
+				else:
+					message = _("Something wrong with your command")
 			else:
 				message = _("You should write right task")
 		
@@ -86,8 +90,17 @@ class Bot(models.Model):
 		return message
 
 
-	def finish_objects(self, command):
-		command.task_target.task.finish_task()
+	def finish_objects(self, command, profile):
+		try:
+			Task.objects.finish_task(
+				task_name= command.task_target.name,
+				group_name= command.group_target.name,
+				category_name= command.category_target.name,
+				profile= profile
+				)
+		except Exception:
+			return False
+		
 		return True
 
 	
@@ -109,7 +122,7 @@ class Bot(models.Model):
 			except IntegrityError:
 				return _("Task with the name already exists in the group")
 			except Exception as err:
-				return err.args[0]
+				return _("Something wrong with your command")
 		else:
 			#Если задача не указана
 			if command.group_target.name != 'default':
@@ -124,7 +137,7 @@ class Bot(models.Model):
 				except IntegrityError:
 					return _("Group with the name already exists in the category")
 				except Exception as err:
-					return err.args[0]
+					return _("Something wrong with your command")
 			
 			elif command.category_target.name != 'default':
 				#Если группа не указана, но указана категория
@@ -137,7 +150,7 @@ class Bot(models.Model):
 				except IntegrityError:
 					return _("Category with the name already exists in the profile")
 				except Exception as err:
-					return err.args[0]
+					return _("Something wrong with your command")
 			
 			else:
 				return False
@@ -200,11 +213,18 @@ class Bot(models.Model):
 		return result_string
 
 
-	def update_objects(self, command):
-		Transaction.objects.add_transaction(
-			task= command.task_target.task,
-			spent_time= command.minutes
-			)
+	def update_objects(self, command, profile):
+		try:
+			Transaction.objects.add_transaction(
+				task_name= command.task_target.name,
+				group_name= command.group_target.name,
+				category_name= command.category_target.name,
+				profile= profile,
+				minutes= command.minutes
+				)
+		except Exception as err:
+			return False
+		
 		return True
 		
 

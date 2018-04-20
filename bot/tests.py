@@ -58,47 +58,47 @@ class BotTestCase(TransactionTestCase):
 
 			['+ #newtask @newgroup *newcategory *newcategory1',"Something wrong with your command"],
 
-			['+ @existinggroup *existingcategory',['create', 'error_group_exists']],
+			['+ @newgroup *newcategory',"Group with the name already exists in the category"],
 
-			['+ @newgroup *existingcategory',['create', 'group_newgroup in category existingcategory']],
+			['+ @newgroup #newtask3 *newcategory',"Task created successfully"],
 
-			['+ @existinggroup #newtask *existingcategory',['create', 'task_newtask in group existinggroup in category existingcategory']],
+			['+ @newgroup *newcategory  #newtask4',"Task created successfully"],
 
-			['+ @existinggroup *existingcategory  #newtask',['create', 'task_newtask in group existinggroup in category existingcategory']],
+			['+ *newcategory @newgroup  #newtask5',"Task created successfully"],
 
-			['+ *existingcategory @existinggroup  #newtask',['create', 'task_newtask in group existinggroup in category existingcategory']],
+			['+ *newcategory @existinggroup',"Group created successfully"],
 
-			['+ *existingcategory @existinggroup',['create', 'error_group_exists']],
+			['+ *newcategory2',"Category created successfully"],
 
-			['+ *newcategory @existinggroup',['create', 'error_category_does_not_exists']],
+			['+ *newcategory2',"Category with the name already exists in the profile"],
 
-			['+ *newcategory',['create', 'category_newcategory']],
+			['1h23m #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 83\nlast activity: "+self.last_activity],
 
-			['+ *existingcategory',['create', 'error_category_exists']],
+			['1h23m #newtask @newgroup *newcategory',"name: newtask\ngroup: newgroup\ncreated at: "+self.last_activity+"\nspent time: 83\nlast activity: "+self.last_activity],
 
-			['1h23m #task1',['update', 'add 83 min to task1']],
+			['? @newgroup *newcategory',"name: newgroup\ncreated at: "+self.last_activity+"\ncategory: newcategory\nspent time: 83\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 83\nnewtask3: 0\nnewtask4: 0\nnewtask5: 0\n"],
 
-			['1h23m #taskWithTwinInOtherGroup',['update', 'error_too_many_tasks']],
+			['? *newcategory',"spent time: 83\ncompleted tasks: 0\nlast activity: 2018-04-20\ninfo about groups in category: newgroup: 83\nexistinggroup: 0\n"],
 
-			['+1h23m #newtask',['create', 'task_new_task']],
+			['+1h23m #newtask6',"Task created successfully"],
 
-			['+1h23m #existingtask',['create', 'error_task_exists']],
+			['+1h23m #newtask',"Task with the name already exists in the group"],
 
-			['?1h23m #existingtask',['read', 'task_existingtask']],
+			['?1h23m #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 83\nlast activity: "+self.last_activity],
 
-			['23m #existingtask',['update', 'add 23 min to task1']],
+			['23m #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 106\nlast activity: "+self.last_activity],
 
-			['23 #existingtask',['update', 'error_unknown_value']],
+			['23 #existingtask',"Something wrong with your command"],
 
-			['m #existingtask',['update', 'error_unknown_value']],
+			['m #existingtask',"Something wrong with your command"],
 
-			['! #existingtask',['finish', 'task_existingtask']],
+			['! #existingtask',"Something wrong with your command"],
 
-			['! #existingtaskWithTwinInOtherGroup',['finish', 'error_too_many_tasks']],
+			['! #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 106\nlast activity: "+self.last_activity],
 
-			['! @existinggroup',['finish', 'error_unknown_task']],
+			['! @existinggroup',"You should write right task"],
 
-			['! *existingcategory',['finish', 'error_unknown_task']]
+			['! *existingcategory',"You should write right task"]
 
 		]
 		

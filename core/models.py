@@ -141,7 +141,7 @@ class Profile(models.Model):
 		self.completed_tasks = 0
 		categories = Category.objects.filter(profile=self)
 		for category in categories:
-			self.spent_time += category.minutes
+			self.spent_time += category.spent_time
 			self.completed_tasks += category.completed_tasks
 
 		self.save()		
@@ -236,7 +236,7 @@ class Category(models.Model):
 		self.completed_tasks = 0
 		groups = Group.objects.filter(category=self)
 		for group in groups:
-			self.spent_time += group.minutes
+			self.spent_time += group.spent_time
 			self.completed_tasks += group.completed_tasks
 
 		self.save()
@@ -349,7 +349,7 @@ class Group(models.Model):
 		self.completed_tasks = 0
 		tasks = Task.objects.filter(group=self)
 		for task in tasks:
-			self.spent_time += task.minutes
+			self.spent_time += task.spent_time
 			if task.is_finished:
 				self.completed_tasks += 1
 
@@ -421,6 +421,24 @@ class TaskManager(models.Manager):
 		]
 
 		return info
+
+
+	def finish_task(self, task_name, group_name, category_name, profile):
+		
+		category = Category.objects.get(name=category_name, profile=profile)
+		group = Group.objects.get(name=group_name, category=category)
+		task = Task.objects.get(
+			name= task_name,
+			profile= profile,
+			group= group,					
+			)
+
+		task.finish_date = datetime.datetime.now()
+		task.is_finished = True
+		task.save()
+		task.group.update_group()
+		
+		return True
 		
 
 
@@ -453,17 +471,12 @@ class Task(models.Model):
 
 	def update_task(self, transaction):
 		self.last_activity = datetime.datetime.now()
-		self.spent_time += transaction.minutes
+		self.spent_time += transaction.spent_time
 		self.save()
 		self.group.update_group()
 		return True
 
-	def finish_task(self):
-		self.finish_date = datetime.datetime.now()
-		self.is_finished = True
-		self.save()
-		self.group.update_group()
-		return True
+	
 
 
 
@@ -486,12 +499,21 @@ class Achievment(models.Model):
 
 class TransactionManager(models.Manager):
 
-	def add_transaction(self, task, minutes):
+	def add_transaction(self, task_name, group_name, category_name, profile, minutes):
+		category = Category.objects.get(name=category_name, profile=profile)
+		group = Group.objects.get(name=group_name, category=category)
+		task = Task.objects.get(
+			name= task_name,
+			profile= profile,
+			group= group,					
+			)
+
 		transaction = super().create(
 			task= task,
 			spent_time= minutes
 			)
-		task.update_task()
+
+		task.update_task(transaction)
 
 		return True
 

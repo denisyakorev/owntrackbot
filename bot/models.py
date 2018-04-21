@@ -1,7 +1,7 @@
 from django.db import models
 from core.models import Profile
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from django.core.exceptions import ObjectDoesNotExist
 import re
 from core.models import Task, Category, Group, Transaction

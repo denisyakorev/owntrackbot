@@ -37,7 +37,8 @@ class Bot(models.Model):
 	url_prefix = models.TextField()
 	objects = BotManager()
 	
-	def get_response(self, update):		
+	def get_response(self, update):	
+		print("get response")	
 		#Получим данные пользователя, или создадим нового
 		user_data = update['message']['from']
 		profile = Profile.objects.get_or_create_profile(

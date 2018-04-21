@@ -12,6 +12,7 @@ from threading import Thread
 @csrf_exempt
 def dispatcher(request):
     '''Принимает запрос, передаёт его в обработчик''' 
+    print ('Hello world')
     update = json.loads(request.body.decode('utf-8')) 
     #Заупскаем второй поток, 
     #который начинает работу над ответным сообщением

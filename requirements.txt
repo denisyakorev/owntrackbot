@@ -1,8 +1,12 @@
 certifi==2018.1.18
 chardet==3.0.4
 Django==2.0.3
+django-extensions==2.0.6
 gunicorn==19.7.1
 idna==2.6
 pytz==2018.3
 requests==2.18.4
+six==1.11.0
+South==1.0.2
+typing==3.6.4
 urllib3==1.22

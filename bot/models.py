@@ -49,6 +49,7 @@ class Bot(models.Model):
 		#Проанализируем сообщение
 		in_message = update['message']['text']
 		out_message = self.make_command(in_message, profile, update)
+		print("out message: "+out_message)
 		return out_message
 
 	def make_command(self, in_message, profile, update):

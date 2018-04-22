@@ -38,6 +38,10 @@ class BotTestCase(TransactionTestCase):
 
 			['? @newgroup',"name: newgroup\ncreated at: "+self.last_activity+"\ncategory: default\nspent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 0\n"],
 
+			['? @default',"name: default\ncreated at: "+self.last_activity+"\ncategory: default\nspent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 0\n"],
+
+			['? *default',"spent time: 0\ncompleted tasks: 0\nlast activity: 2018-04-22\ninfo about groups in category: default: 0\nnewgroup: 0\n"],
+
 			['? @unrealgroup',"Group does not exist"],
 
 			['+ *newcategory',"Category created successfully"],
@@ -78,7 +82,7 @@ class BotTestCase(TransactionTestCase):
 
 			['? @newgroup *newcategory',"name: newgroup\ncreated at: "+self.last_activity+"\ncategory: newcategory\nspent time: 83\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 83\nnewtask3: 0\nnewtask4: 0\nnewtask5: 0\n"],
 
-			['? *newcategory',"spent time: 83\ncompleted tasks: 0\nlast activity: 2018-04-20\ninfo about groups in category: newgroup: 83\nexistinggroup: 0\n"],
+			['? *newcategory',"spent time: 83\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about groups in category: newgroup: 83\nexistinggroup: 0\n"],
 
 			['+1h23m #newtask6',"Task created successfully"],
 

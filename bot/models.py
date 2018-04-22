@@ -177,7 +177,7 @@ class Bot(models.Model):
 		else:
 			#Если задача не указана
 			
-			if command.group_target.name != 'default':
+			if command.group_target.name != 'default' or not command.group_target.is_auto_default:
 				#Но указана какая-то группа
 				try:
 					result= Group.objects.get_group_info(
@@ -188,7 +188,7 @@ class Bot(models.Model):
 				except ValueError as err:
 					return err.args[0]
 				
-			elif command.category_target.name != 'default':
+			elif command.category_target.name != 'default' or not command.category_target.is_auto_default:
 				#Если группа не указана, но указана категория
 				try:
 					result= Category.objects.get_category_info(
@@ -299,6 +299,7 @@ class TaskTarget(CommandTarget):
 class GroupTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='@')
 	group= models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
+	is_auto_default = models.BooleanField(default=False)
 
 	
 	def get_embedding_result(self, message):
@@ -315,6 +316,7 @@ class GroupTarget(CommandTarget):
 
 		elif len(entities) == 0:
 			self.name = 'default'
+			self.is_auto_default = True
 		
 		else:
 			self.name = entities[0]
@@ -324,6 +326,7 @@ class GroupTarget(CommandTarget):
 class CategoryTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='*')
 	category= models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True)
+	is_auto_default = models.BooleanField(default=False)
 
 	
 	def get_embedding_result(self, message):
@@ -340,6 +343,7 @@ class CategoryTarget(CommandTarget):
 
 		elif len(entities) == 0:
 			self.name = 'default'
+			self.is_auto_default = True
 		
 		else:
 			self.name = entities[0]

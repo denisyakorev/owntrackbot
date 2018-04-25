@@ -6,6 +6,44 @@ from django.utils import timezone
 
 # Create your models here.
 
+
+class ProgrammComponent(models.Model):
+	spent_time = models.IntegerField(null=True, blank=True)
+	last_activity = models.DateField(default=timezone.now())
+	created_at = models.DateField(auto_now_add=True)
+	
+	def get_info(self):
+		spent_time = self.get_spent_time()
+		
+		info = [
+			{
+				'param_name':_('spent time'),
+				'param_value': spent_time 
+			},
+			{
+				'param_name':_('last activity'),
+				'param_value': self.last_activity.strftime("%d.%m.%Y")  
+			}
+		]
+
+		return info
+
+	
+	def get_spent_time(self):
+		spent_time = "0"
+		if self.spent_time:
+			if self.spent_time > 60:
+				spent_time = str(self.spent_time // 60)+"h "+str(self.spent_time % 60)+"m"
+			else:
+				spent_time = str(self.spent_time)+"m"
+		
+		return spent_time
+
+
+	class Meta:
+		abstract= True
+
+
 class ProfileManager(models.Manager):
 
 	def get_or_create_profile(self, client_type, user_id, **kwargs):
@@ -39,9 +77,8 @@ class ProfileManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
-		spent_time = profile.spent_time
-		if not spent_time:
-			spent_time = 0
+		spent_time = profile.get_spent_time()
+		
 
 		completed_tasks = profile.completed_tasks
 		if not completed_tasks:
@@ -51,31 +88,17 @@ class ProfileManager(models.Manager):
 		
 		categories_info = ""
 		for category in categories:
-			categories_info += category.name+": "+ str(category.spent_time) + "\n"
+			categories_info += category.name+": "+ category.get_spent_time() + "\n"
 		
-		info = [
-			
-		{
-			'param_name':_('spent time'),
-			'param_value': spent_time 
-		},
-		{
-			'param_name':_('completed tasks'),
-			'param_value': completed_tasks 
-		},
-		{
-			'param_name':_('last activity'),
-			'param_value': profile.last_activity.strftime("%Y-%m-%d")  
-		},
-		{
-			'param_name':_('info about categories in profile'),
-			'param_value': categories_info 
-		}
-
-		]
+		info = profile.get_info()
+		info.append(		
+			{
+				'param_name':_('info about categories in profile'),
+				'param_value': categories_info 
+			}
+		)
 
 		return info
-
 
 
 	def create_new_pool(self, **kwargs):
@@ -112,15 +135,12 @@ class ProfileManager(models.Manager):
 
 
 
-class Profile(models.Model):
+class Profile(ProgrammComponent):
 	user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
 	username = models.CharField(max_length=200, verbose_name=_("username"))
 	register_from = models.CharField(max_length=200, verbose_name=_("register from"), default='telegram')
 	register_id = models.IntegerField(null=True, blank=True, unique=True)
-	completed_tasks = models.IntegerField(null=True, blank=True)
-	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField(default=timezone.now())
-	created_at = models.DateField(auto_now_add=True)
+	completed_tasks = models.IntegerField(null=True, blank=True)	
 	objects = ProfileManager()
 
 	def __unicode__(self):
@@ -179,43 +199,27 @@ class CategoryManager(models.Manager):
 		
 		groups_info = ""
 		for group in groups:
-			groups_info += group.name+": "+ str(group.spent_time) + "\n"
+			groups_info += group.name+": "+ group.get_spent_time() + "\n"
 		
-		info = [
-			
-		{
-			'param_name':_('spent time'),
-			'param_value': category.spent_time 
-		},
-		{
-			'param_name':_('completed tasks'),
-			'param_value': category.completed_tasks 
-		},
-		{
-			'param_name':_('last activity'),
-			'param_value': category.last_activity.strftime("%Y-%m-%d") 
-		},
+		info = category.get_info()
+		info.append(
 		{
 			'param_name':_('info about groups in category'),
 			'param_value': groups_info 
 		}
-
-		]
+		)
 
 		return info
 
 
-class Category(models.Model):
+class Category(ProgrammComponent):
 	name = models.CharField(max_length=200, unique=True, verbose_name=_("category name"))
 	profile = models.ForeignKey('Profile', on_delete=models.CASCADE, blank=True, null=True)
 	parent = models.ForeignKey("Category", on_delete=models.CASCADE, blank=True, null=True)
 	is_default = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
-	aim = models.TextField(verbose_name=_("what person want to get"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
-	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField(default=timezone.now())
-	created_at = models.DateField(auto_now_add=True)
+	aim = models.TextField(verbose_name=_("what person want to get"), blank=True)
 	objects = CategoryManager()
 
 	def __unicode__(self):
@@ -280,53 +284,28 @@ class GroupManager(models.Manager):
 		tasks = Task.objects.filter(group= group, is_finished= False)
 		tasks_info = ""
 		for task in tasks:
-			tasks_info += task.name+": "+ str(task.spent_time) + "\n"
+			tasks_info += task.name+": "+ task.get_spent_time() + "\n"
+		info = group.get_info()
+		info.append({
+				'param_name':_('category'),
+				'param_value': group.category.name 
+			})			
+		info.append({
+				'param_name':_('info about active tasks'),
+				'param_value': tasks_info 
+			})
 		
-		info = [
-		{
-			'param_name':_('name'),
-			'param_value': group.name 
-		},
-		{
-			'param_name':_('created at'),
-			'param_value': group.created_at 
-		},
-		{
-			'param_name':_('category'),
-			'param_value': group.category.name 
-		},		
-		{
-			'param_name':_('spent time'),
-			'param_value': group.spent_time 
-		},
-		{
-			'param_name':_('completed tasks'),
-			'param_value': group.completed_tasks 
-		},
-		{
-			'param_name':_('last activity'),
-			'param_value': group.last_activity.strftime("%Y-%m-%d") 
-		},
-		{
-			'param_name':_('info about active tasks'),
-			'param_value': tasks_info 
-		}
-
-		]
 
 		return info
 
 
-class Group(models.Model):
+class Group(ProgrammComponent):
 	name = models.CharField(max_length=200, verbose_name=_("programm name"))
 	category = models.ForeignKey(Category, on_delete=models.CASCADE)
 	is_default = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
 	description = models.TextField(verbose_name=_("what is this programm for"), blank=True)
 	completed_tasks = models.IntegerField(null=True, blank=True)
-	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField(default=timezone.now())	
-	created_at = models.DateField(auto_now_add=True)
 	objects = GroupManager()
 	
 
@@ -396,29 +375,13 @@ class TaskManager(models.Manager):
 		except Task.DoesNotExist:
 			raise ValueError(_('Task does not exist'))
 
-		info = [
-		{
-			'param_name':_('name'),
-			'param_value': task.name 
-		},
+		info = task.get_info()
+		info.append(
 		{
 			'param_name':_('group'),
 			'param_value': task.group.name 
-		},
-		{
-			'param_name':_('created at'),
-			'param_value': task.created_at 
-		},		
-		{
-			'param_name':_('spent time'),
-			'param_value': task.spent_time 
-		},
-		{
-			'param_name':_('last activity'),
-			'param_value': task.last_activity.strftime("%Y-%m-%d") 
 		}
-
-		]
+		)
 
 		return info
 
@@ -442,16 +405,13 @@ class TaskManager(models.Manager):
 		
 
 
-class Task(models.Model):
+class Task(ProgrammComponent):
 	name = models.CharField(max_length=200, verbose_name=_("task"))
 	profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
 	group = models.ForeignKey(Group, on_delete=models.CASCADE)
 	is_finished = models.BooleanField(default=False)
-	created_at = models.DateField(auto_now_add=True)
 	plan_date = models.DateField(null=True, blank=True)
 	finish_date = models.DateField(null=True, blank=True)
-	spent_time = models.IntegerField(null=True, blank=True)
-	last_activity = models.DateField(default=timezone.now())
 	description = models.TextField(verbose_name=_("what is this task about"), blank=True)
 	objects = TaskManager()
 

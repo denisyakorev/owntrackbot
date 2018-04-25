@@ -42,7 +42,8 @@ def make_response(*args, **kwargs):
     Запрос:
     {'message': {'text': 'Hi', 'from': {'language_code': 'ru-RU', 'is_bot': False, 'first_name': 'Denis', 'id': 347385183}, 'chat': {'type': 'private', 'first_name': 'Denis', 'id': 347385183}, 'date': 1522167580, 'message_id': 52}, 'update_id': 890164791}
     """    
-    #Передаём запрос боту, и получаем его ответ   
+    #Передаём запрос боту, и получаем его ответ 
+    print("make response")  
     update = kwargs['update']
     bot = Bot.objects.get_or_create_bot('telegram')
     message = bot.get_response(update)

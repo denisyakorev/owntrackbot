@@ -11,14 +11,14 @@ class BotTestCase(TransactionTestCase):
 			user_id= 1,
 			client_type= 'telegram'
 			)
-		self.last_activity = self.profile.last_activity.strftime("%Y-%m-%d")
+		self.last_activity = self.profile.last_activity.strftime("%d.%m.%Y")
 
 
 
 	def test_message_out(self):
 		
 		equals = [
-			['?', 'spent time: 0\ncompleted tasks: 0\nlast activity: '+self.last_activity+'\ninfo about categories in profile: default: 0\n'],
+			['?', 'spent time: 0\nlast activity: '+self.last_activity+'\ninfo about categories in profile: default: 0\n'],
 
 			['? #unrealtask', 'Task does not exist'],
 
@@ -26,21 +26,21 @@ class BotTestCase(TransactionTestCase):
 
 			['+ #newtask',"Task with the name already exists in the group"],
 
-			['? #newtask',	"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 0\nlast activity: "+self.last_activity],
+			['? #newtask',	"spent time: 0\nlast activity: "+self.last_activity+"\ngroup: default"],
 
 			['+ @newgroup',"Group created successfully"],
 
 			['+ #newtask @newgroup',"Task created successfully"],
 
-			['? #newtask', "name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 0\nlast activity: "+self.last_activity],
+			['? #newtask', "spent time: 0\nlast activity: "+self.last_activity+"\ngroup: default"],
 
-			['?#newtask', "name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 0\nlast activity: "+self.last_activity],
+			['?#newtask', "spent time: 0\nlast activity: "+self.last_activity+"\ngroup: default"],
 
-			['? @newgroup',"name: newgroup\ncreated at: "+self.last_activity+"\ncategory: default\nspent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 0\n"],
+			['? @newgroup',"spent time: 0\nlast activity: "+self.last_activity+"\ncategory: default\ninfo about active tasks: newtask: 0\n"],
 
-			['? @default',"name: default\ncreated at: "+self.last_activity+"\ncategory: default\nspent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 0\n"],
+			['? @default',"spent time: 0\nlast activity: "+self.last_activity+"\ncategory: default\ninfo about active tasks: newtask: 0\n"],
 
-			['? *default',"spent time: 0\ncompleted tasks: 0\nlast activity: 2018-04-22\ninfo about groups in category: default: 0\nnewgroup: 0\n"],
+			['? *default',"spent time: 0\nlast activity: "+self.last_activity+"\ninfo about groups in category: default: 0\nnewgroup: 0\n"],
 
 			['? @unrealgroup',"Group does not exist"],
 
@@ -50,7 +50,7 @@ class BotTestCase(TransactionTestCase):
 
 			['+ #newtask @newgroup *newcategory',"Task created successfully"],
 
-			['? *newcategory',"spent time: 0\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about groups in category: newgroup: 0\n"],
+			['? *newcategory',"spent time: 0\nlast activity: "+self.last_activity+"\ninfo about groups in category: newgroup: 0\n"],
 
 			['? *unrealcategory',"Category does not exist"],
 
@@ -76,21 +76,21 @@ class BotTestCase(TransactionTestCase):
 
 			['+ *newcategory2',"Category with the name already exists in the profile"],
 
-			['1h23m #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 83\nlast activity: "+self.last_activity],
+			['1h23m #newtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: default"],
 
-			['1h23m #newtask @newgroup *newcategory',"name: newtask\ngroup: newgroup\ncreated at: "+self.last_activity+"\nspent time: 83\nlast activity: "+self.last_activity],
+			['1h23m #newtask @newgroup *newcategory',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: newgroup"],
 
-			['? @newgroup *newcategory',"name: newgroup\ncreated at: "+self.last_activity+"\ncategory: newcategory\nspent time: 83\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about active tasks: newtask: 83\nnewtask3: 0\nnewtask4: 0\nnewtask5: 0\n"],
+			['? @newgroup *newcategory',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ncategory: newcategory\ninfo about active tasks: newtask: 1h 23m\nnewtask3: 0\nnewtask4: 0\nnewtask5: 0\n"],
 
-			['? *newcategory',"spent time: 83\ncompleted tasks: 0\nlast activity: "+self.last_activity+"\ninfo about groups in category: newgroup: 83\nexistinggroup: 0\n"],
+			['? *newcategory',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ninfo about groups in category: newgroup: 1h 23m\nexistinggroup: 0\n"],
 
 			['+1h23m #newtask6',"Task created successfully"],
 
 			['+1h23m #newtask',"Task with the name already exists in the group"],
 
-			['?1h23m #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 83\nlast activity: "+self.last_activity],
+			['?1h23m #newtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: default"],
 
-			['23m #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 106\nlast activity: "+self.last_activity],
+			['23m #newtask',"spent time: 1h 46m\nlast activity: "+self.last_activity+"\ngroup: default"],
 
 			['23 #existingtask',"Something wrong with your command"],
 
@@ -98,7 +98,7 @@ class BotTestCase(TransactionTestCase):
 
 			['! #existingtask',"Something wrong with your command"],
 
-			['! #newtask',"name: newtask\ngroup: default\ncreated at: "+self.last_activity+"\nspent time: 106\nlast activity: "+self.last_activity],
+			['! #newtask',"spent time: 1h 46m\nlast activity: "+self.last_activity+"\ngroup: default"],
 
 			['! @existinggroup',"You should write right task"],
 

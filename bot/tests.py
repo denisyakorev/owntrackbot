@@ -102,7 +102,13 @@ class BotTestCase(TransactionTestCase):
 
 			['! @existinggroup',"You should write right task"],
 
-			['! *existingcategory',"You should write right task"]
+			['! *existingcategory',"You should write right task"],
+
+			['+ #newnewtask @newgroup',"Task created successfully"],
+
+			['1h23m #newnewtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: newgroup"],
+
+			['?#newnewtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: newgroup"],
 
 		]
 		

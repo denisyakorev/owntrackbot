@@ -127,7 +127,7 @@ class Bot(models.Model):
 				return _("Something wrong with your command")
 		else:
 			#Если задача не указана
-			if command.group_target.name != 'default':
+			if command.group_target.name != 'default' or not command.group_target.is_auto_default:
 				#Но указана какая-то группа
 				try:
 					Group.objects.create_new_group(
@@ -141,7 +141,7 @@ class Bot(models.Model):
 				except Exception as err:
 					return _("Something wrong with your command")
 			
-			elif command.category_target.name != 'default':
+			elif command.category_target.name != 'default' or not command.category_target.is_auto_default:
 				#Если группа не указана, но указана категория
 				try:
 					Category.objects.create_new_category(
@@ -264,11 +264,20 @@ class CommandTarget(models.Model):
 	name = models.CharField(max_length= 200, blank=True)
 	errors = models.CharField(max_length= 200, blank=True)	
 
-	def __init__(self, message, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.get_embedding_result(message=message)
+	class Meta():
+		abstract= True
 
-	def get_embedding_result(self, message):
+
+class TaskTarget(CommandTarget):
+	symbol = models.CharField(max_length=10, blank=True, default='#')
+	task= models.ForeignKey(Task, on_delete=models.CASCADE, blank=True, null=True) 
+
+	def __init__(self, message, profile, *args, **kwargs):
+		super().__init__(message, *args, **kwargs)
+		self.get_embedding_result(message=message, profile=profile)
+
+
+	def get_embedding_result(self, message, profile):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
 		сообщения
@@ -285,21 +294,33 @@ class CommandTarget(models.Model):
 		
 		else:
 			self.name = entities[0]
-
-
-	class Meta():
-		abstract= True
-
-
-class TaskTarget(CommandTarget):
-	symbol = models.CharField(max_length=10, blank=True, default='#')
-	task= models.ForeignKey(Task, on_delete=models.CASCADE, blank=True, null=True) 
+		
+		try:
+			self.task = Task.objects.get(name=self.name, profile=profile, is_finished=False)
+		
+		except Task.DoesNotExist:
+			"""
+			Ничего не делаем, потому что дальнейшие действия определяются контекстом 
+			- коммандами, которые переданы. Отсутствие задачи может являться нормальным
+			"""
+			pass
+		
+		except Task.MultipleObjectsReturned:
+			"""
+			Ничего не делаем, возможно в команде указаны уточняющие данные: группа, категория
+			"""
+			pass
 
 		
 class GroupTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='@')
 	group= models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
 	is_auto_default = models.BooleanField(default=False)
+
+
+	def __init__(self, message, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.get_embedding_result(message=message)
 
 	
 	def get_embedding_result(self, message):
@@ -322,13 +343,17 @@ class GroupTarget(CommandTarget):
 			self.name = entities[0]
 
 
-
 class CategoryTarget(CommandTarget):
 	symbol = models.CharField(max_length=10, blank=True, default='*')
 	category= models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True)
 	is_auto_default = models.BooleanField(default=False)
 
 	
+	def __init__(self, message, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.get_embedding_result(message=message)
+
+
 	def get_embedding_result(self, message):
 		""" 
 		Функция, вычленяющая задачи, группы и категории из
@@ -387,7 +412,7 @@ class Command(models.Model):
 	def analyze_embeddings(self, message):				
 		#Проверяем на наличие не больше одной задачи
 		try:
-			self.task_target = TaskTarget(message=self.message)
+			self.task_target = TaskTarget(message=self.message, profile=self.profile)
 		except ValueError as err:
 			e = err.args[0]
 			if e != 'There is no objects':						
@@ -396,9 +421,22 @@ class Command(models.Model):
 				pass
 
 		#Проверяем на наличие не больше одной группы
-		self.group_target = GroupTarget(message=self.message)	
+		self.group_target = GroupTarget(message=self.message)
+		if self.task_target and self.group_target.name == 'default' and self.group_target.is_auto_default:
+			if self.task_target.task:
+				self.group_target.name = self.task_target.task.group.name	
+				self.group_target.is_auto_default = False
+				self.group_target.group = self.task_target.task.group
+				self.group_target.save()
+		
 		#Проверяем на наличие не больше одной категории
-		self.category_target = CategoryTarget(message=self.message)		
+		self.category_target = CategoryTarget(message=self.message)
+		if self.task_target and self.category_target.name == 'default' and self.category_target.is_auto_default:
+			if self.task_target.task:
+				self.category_target.name = self.task_target.task.group.category.name	
+				self.category_target.is_auto_default = False
+				self.category_target.category = self.task_target.task.group.category
+				self.category_target.save()		
 		
 		#Проверяем на наличие времени
 		#И преобразуем время, при необходимости

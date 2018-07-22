@@ -18,8 +18,6 @@ class BotTestCase(TransactionTestCase):
 	def test_message_out(self):
 		
 		equals = [
-			['?', 'spent time: 0\nlast activity: '+self.last_activity+'\ninfo about categories in profile: default: 0\n'],
-
 			['? #unrealtask', 'Task does not exist'],
 
 			['+ #newtask',"Task created successfully"],
@@ -109,6 +107,8 @@ class BotTestCase(TransactionTestCase):
 			['1h23m #newnewtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: newgroup"],
 
 			['?#newnewtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: newgroup"],
+
+			['?', '\n\n*default\ncompleted tasks:0\nspent time:0\n\t\n'],
 
 		]
 		

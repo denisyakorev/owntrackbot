@@ -1,0 +1,20 @@
+{%load i18n%}
+{% for category in categories %}
+*{{category.name}}<br/>
+{%trans 'completed tasks'%}:{{category.completed_tasks}}<br/>
+{%trans 'spent time'%}:{{category.spent_time}}<br/>
+	{% for group in groups %}
+		{% ifequal group.category.id category.id %}
+__@{{group.name}}<br/>
+__{%trans 'completed tasks'%}:{{group.completed_tasks}}<br/>
+__{%trans 'spent time'%}:{{group.spent_time}}<br/>
+			{% for task in tasks %}
+				{% ifequal task.group.id group.id %}
+
+____#{{task.name}}<br/>
+____{%trans 'spent time'%}:{{task.spent_time}}<br/>				
+				{% endifequal %}
+			{% endfor %}
+		{% endifequal %}
+	{% endfor %}
+{% endfor %}

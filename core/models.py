@@ -3,6 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 import datetime
 from django.utils import timezone
+from django.template.loader import get_template
 
 # Create your models here.
 
@@ -78,37 +79,12 @@ class ProfileManager(models.Manager):
 		
 		"""
 		context = {}
-		context.categories = Category.objects.filter(profile=profile)		
-		context.groups = Group.objects.filter(profile=profile).select_related()
+		context['categories'] = Category.objects.filter(profile=profile)		
+		context['groups'] = Group.objects.filter(profile=profile).select_related()
 		#Отдельно получаем все задачи пользователя
-		context.tasks = Task.objects.filter(profile=profile, is_finished=False).select_related()
-
-
-
-
-
-
-		spent_time = profile.get_spent_time()
-		
-
-		completed_tasks = profile.completed_tasks
-		if not completed_tasks:
-			completed_tasks = 0
-
-		categories = Category.objects.filter(profile=profile)
-		
-		categories_info = ""
-		for category in categories:
-			categories_info += category.name+": "+ category.get_spent_time() + "\n"
-		
-		info = profile.get_info()
-		info.append(		
-			{
-				'param_name':_('info about categories in profile'),
-				'param_value': categories_info 
-			}
-		)
-
+		context['tasks'] = Task.objects.filter(profile=profile, is_finished=False).select_related()
+		template = get_template('responses/profile.txt')
+		info = template.render(context)
 		return info
 
 

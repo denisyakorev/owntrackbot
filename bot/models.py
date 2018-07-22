@@ -200,6 +200,7 @@ class Bot(models.Model):
 				result = Profile.objects.get_profile_info(
 					profile= command.profile
 					)
+				return result
 
 
 		result_string = ''

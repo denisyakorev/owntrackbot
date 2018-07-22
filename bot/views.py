@@ -12,12 +12,10 @@ from threading import Thread
 @csrf_exempt
 def dispatcher(request):
     '''Принимает запрос, передаёт его в обработчик''' 
-    print ('Hello world')
     update = json.loads(request.body.decode('utf-8')) 
     #Заупскаем второй поток, 
     #который начинает работу над ответным сообщением
     t2= Thread(target=make_response, args=(), kwargs={'update': update})
-
     t2.start()
 
     response = HttpResponse(json.dumps({'message': 'ок'}),
@@ -43,7 +41,6 @@ def make_response(*args, **kwargs):
     {'message': {'text': 'Hi', 'from': {'language_code': 'ru-RU', 'is_bot': False, 'first_name': 'Denis', 'id': 347385183}, 'chat': {'type': 'private', 'first_name': 'Denis', 'id': 347385183}, 'date': 1522167580, 'message_id': 52}, 'update_id': 890164791}
     """    
     #Передаём запрос боту, и получаем его ответ 
-    print("make response")  
     update = kwargs['update']
     bot = Bot.objects.get_or_create_bot('telegram')
     message = bot.get_response(update)

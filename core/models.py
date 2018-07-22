@@ -77,6 +77,17 @@ class ProfileManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
+		context = {}
+		context.categories = Category.objects.filter(profile=profile)		
+		context.groups = Group.objects.filter(profile=profile).select_related()
+		#Отдельно получаем все задачи пользователя
+		context.tasks = Task.objects.filter(profile=profile, is_finished=False).select_related()
+
+
+
+
+
+
 		spent_time = profile.get_spent_time()
 		
 
@@ -255,6 +266,7 @@ class GroupManager(models.Manager):
 		group = super().create(
 			name= group_name,
 			category= category,
+			profile=profile,
 			completed_tasks= 0,
 			spent_time= 0,
 			last_activity= datetime.datetime.now()						
@@ -302,6 +314,7 @@ class GroupManager(models.Manager):
 class Group(ProgrammComponent):
 	name = models.CharField(max_length=200, verbose_name=_("programm name"))
 	category = models.ForeignKey(Category, on_delete=models.CASCADE)
+	profile = models.ForeignKey('Profile', on_delete=models.CASCADE, blank=True, null=True)
 	is_default = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
 	description = models.TextField(verbose_name=_("what is this programm for"), blank=True)

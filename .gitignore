@@ -1,3 +1,5 @@
 wsgi_prod.py
+db_old.sqlite3
+db.sqlite3
 settings_prod.py
 __pycache__/*

@@ -78,6 +78,7 @@ class ProfileManager(models.Manager):
 		с временем, затраченным на них				
 		
 		"""
+		print('get profile info')
 		context = {}
 		context['categories'] = Category.objects.filter(profile=profile)		
 		context['groups'] = Group.objects.filter(profile=profile).select_related()
@@ -85,6 +86,7 @@ class ProfileManager(models.Manager):
 		context['tasks'] = Task.objects.filter(profile=profile, is_finished=False).select_related()
 		template = get_template('responses/profile.txt')
 		info = template.render(context)
+		print (info)
 		return info
 
 

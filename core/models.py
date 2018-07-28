@@ -473,7 +473,7 @@ class TransactionManager(models.Manager):
 class Transaction(models.Model):
 	task = models.ForeignKey(Task, on_delete=models.CASCADE)
 	spent_time = models.IntegerField()
-	created_at = models.DateField(auto_now_add=True)
+	created_at = models.DateField()
 	objects = TransactionManager()
 
 	class Meta:

@@ -158,6 +158,7 @@ class Profile(ProgrammComponent):
 
 	
 class CategoryManager(models.Manager):
+	
 	def create_new_category(self, category_name, profile):
 		category = super().create(
 			name= category_name,

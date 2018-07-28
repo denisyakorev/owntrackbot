@@ -4,5 +4,4 @@ from django.contrib import admin
 
 urlpatterns = [
     path('', views.dispatcher),
-    path('admin/', admin.site.urls),
 ]

@@ -12,19 +12,19 @@ def update_all_profile_objects(profile):
 	categories = Category.objects.filter(profile=profile)
 	
 	for task in tasks:
-		task.spent_time = Transaction.objects.filter(task=task).aggregate(Sum('spent_time'))
+		task.spent_time = Transaction.objects.filter(task=task).aggregate(Sum('spent_time'))['spent_time__sum']
 		task.save()
 
 	for group in groups:
-		group.spent_time = Task.objects.filter(group=group).aggregate(Sum('spent_time'))
+		group.spent_time = Task.objects.filter(group=group).aggregate(Sum('spent_time'))['spent_time__sum']
 		group.completed_tasks = Task.objects.filter(is_finished=True, group=group).count()
 		group.save()
 
 	for cat in categories:
-		cat.spent_time = Group.objects.filter(category=cat).aggregate(Sum('spent_time'))
-		cat.completed_tasks = Group.objects.filter(category=cat).aggregate(Sum('completed_tasks'))
+		cat.spent_time = Group.objects.filter(category=cat).aggregate(Sum('spent_time'))['spent_time__sum']
+		cat.completed_tasks = Group.objects.filter(category=cat).aggregate(Sum('completed_tasks'))['completed_tasks__sum']
 		cat.save()
 
-	profile.spent_time = Category.objects.filter(profile=profile).aggregate(Sum('spent_time'))
-	profile.completed_tasks = Category.objects.filter(profile=profile).aggregate(Sum('completed_tasks'))
+	profile.spent_time = Category.objects.filter(profile=profile).aggregate(Sum('spent_time'))['spent_time__sum']
+	profile.completed_tasks = Category.objects.filter(profile=profile).aggregate(Sum('completed_tasks'))['completed_tasks__sum']
 	profile.save()

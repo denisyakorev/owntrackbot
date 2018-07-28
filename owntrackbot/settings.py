@@ -25,7 +25,7 @@ SECRET_KEY = 'n1x#92a49lyu@%4&9g83gd5t=hf%cza8_d_v@z8lx21s#8k15o'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'yakorev.info']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'yakorev.info']
 
 
 # Application definition

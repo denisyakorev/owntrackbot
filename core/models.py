@@ -324,7 +324,7 @@ class Group(ProgrammComponent):
 				self.spent_time += task.spent_time
 			else:
 				self.spent_time = task.spent_time
-				
+
 			if task.is_finished:
 				self.completed_tasks += 1
 
@@ -427,6 +427,7 @@ class Task(ProgrammComponent):
 
 	def update_task(self, transaction):
 		self.last_activity = datetime.datetime.now()
+		print("%s + %s" % (str(self.spent_time), str(transaction.spent_time)))
 		if self.spent_time:
 			self.spent_time += transaction.spent_time
 		else:

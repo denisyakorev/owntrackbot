@@ -154,7 +154,7 @@ class Profile(ProgrammComponent):
 				category.spent_time = 0
 				category.save()
 				continue
-				
+
 			self.spent_time += category.spent_time
 			self.completed_tasks += category.completed_tasks
 
@@ -439,7 +439,6 @@ class Task(ProgrammComponent):
 
 	def update_task(self, transaction):
 		self.last_activity = datetime.datetime.now()
-		print("%s + %s" % (str(self.spent_time), str(transaction.spent_time)))
 		if self.spent_time:
 			self.spent_time += transaction.spent_time
 		else:

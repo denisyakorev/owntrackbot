@@ -217,7 +217,6 @@ class Bot(models.Model):
 
 
 	def update_objects(self, command, profile):
-		print ("update objects")
 		try:
 			Transaction.objects.add_transaction(
 				task_name= command.task_target.name,
@@ -227,7 +226,7 @@ class Bot(models.Model):
 				minutes= command.minutes
 				)
 		except Exception as err:
-			print(err)
+			logger.exception(err)
 			return False
 		
 		return True

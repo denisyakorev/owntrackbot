@@ -60,10 +60,12 @@ class Bot(models.Model):
 
 		#Если действия понятные - выполним их
 		if command.command == 0:
-			message = self.create_objects(command)			
+			message = self.create_objects(command)	
+
 			
 		elif command.command == 1:
 			message= self.read_objects(command)
+
 			
 		elif command.command == 2:
 			if command.is_time_valid and command.task_target:
@@ -215,6 +217,7 @@ class Bot(models.Model):
 
 
 	def update_objects(self, command, profile):
+		print ("update objects")
 		try:
 			Transaction.objects.add_transaction(
 				task_name= command.task_target.name,
@@ -224,6 +227,7 @@ class Bot(models.Model):
 				minutes= command.minutes
 				)
 		except Exception as err:
+			print(err)
 			return False
 		
 		return True

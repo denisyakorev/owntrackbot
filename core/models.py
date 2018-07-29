@@ -320,7 +320,11 @@ class Group(ProgrammComponent):
 		self.completed_tasks = 0
 		tasks = Task.objects.filter(group=self)
 		for task in tasks:
-			self.spent_time += task.spent_time
+			if self.spent_time:
+				self.spent_time += task.spent_time
+			else:
+				self.spent_time = task.spent_time
+				
 			if task.is_finished:
 				self.completed_tasks += 1
 
@@ -423,7 +427,10 @@ class Task(ProgrammComponent):
 
 	def update_task(self, transaction):
 		self.last_activity = datetime.datetime.now()
-		self.spent_time += transaction.spent_time
+		if self.spent_time:
+			self.spent_time += transaction.spent_time
+		else:
+			self.spent_time = transaction.spent_time
 		self.save()
 		self.group.update_group()
 		return True

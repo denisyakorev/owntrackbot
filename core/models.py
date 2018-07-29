@@ -150,6 +150,11 @@ class Profile(ProgrammComponent):
 		self.completed_tasks = 0
 		categories = Category.objects.filter(profile=self)
 		for category in categories:
+			if not category.spent_time:
+				category.spent_time = 0
+				category.save()
+				continue
+				
 			self.spent_time += category.spent_time
 			self.completed_tasks += category.completed_tasks
 
@@ -230,6 +235,11 @@ class Category(ProgrammComponent):
 		self.completed_tasks = 0
 		groups = Group.objects.filter(category=self)
 		for group in groups:
+			if not group.spent_time:
+				group.spent_time = 0
+				group.save()
+				continue
+
 			self.spent_time += group.spent_time
 			self.completed_tasks += group.completed_tasks
 
@@ -320,10 +330,12 @@ class Group(ProgrammComponent):
 		self.completed_tasks = 0
 		tasks = Task.objects.filter(group=self)
 		for task in tasks:
-			if self.spent_time:
-				self.spent_time += task.spent_time
-			else:
-				self.spent_time = task.spent_time
+			if not task.spent_time:
+				task.spent_time = 0
+				task.save()
+				continue
+
+			self.spent_time += task.spent_time			
 
 			if task.is_finished:
 				self.completed_tasks += 1

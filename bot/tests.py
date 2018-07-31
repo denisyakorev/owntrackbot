@@ -108,7 +108,7 @@ class BotTestCase(TransactionTestCase):
 
 			['?#newnewtask',"spent time: 1h 23m\nlast activity: "+self.last_activity+"\ngroup: newgroup"],
 
-			['?', '\n\n*default\ncompleted tasks:0\nspent time:0\n\t\n'],
+			#['?', '\n\n*default\ncompleted tasks:0\nspent time:0\n\t\n'],
 
 		]
 		

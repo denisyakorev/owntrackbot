@@ -1,7 +1,8 @@
-from django import template
+from django.template import Library
 
-register = template.Library()
+register = Library()
 
+@register.filter
 def min_to_hours(value):
 	"""
 	Convert minutes to hours

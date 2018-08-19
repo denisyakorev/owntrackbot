@@ -80,6 +80,7 @@ class ProfileManager(models.Manager):
 		"""
 		print('get profile info')
 		context = {}
+		context['profile'] = profile
 		context['categories'] = Category.objects.filter(profile=profile)		
 		context['groups'] = Group.objects.filter(profile=profile).select_related()
 		#Отдельно получаем все задачи пользователя

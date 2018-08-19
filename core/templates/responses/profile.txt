@@ -1,4 +1,4 @@
-{%load i18n%}{%load core_extras%}\xE2\x8C\x9B {%trans 'total time'%}:{{profile.spent_time|min_to_hours}}
+{%load i18n%}{%load core_extras%}%5CxE2%5Cx8C%5Cx9B {%trans 'total time'%}:{{profile.spent_time|min_to_hours}}
 {% for category in categories %}
 *{{category.name}}
 {%trans 'completed tasks'%}:{{category.completed_tasks}}

@@ -1,6 +1,6 @@
 {%load i18n%}{%load core_extras%}{% for category in categories %}
 
-U0000231B {%trans 'total time'%}:{{profile.spent_time|min_to_hours}}
+\xE2\x8C\x9B {%trans 'total time'%}:{{profile.spent_time|min_to_hours}}
 *{{category.name}}
 {%trans 'completed tasks'%}:{{category.completed_tasks}}
 {%trans 'spent time'%}:{{category.spent_time|min_to_hours}}{% for group in groups %}{% ifequal group.category.id category.id %}

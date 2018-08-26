@@ -23,7 +23,7 @@ def get_profile_info(request, profile_id):
 
     data = get_profile_data(profile)
 
-    return HttpResponse(json.dump(data), content_type="application/json")
+    return HttpResponse(json.dumps(data), content_type="application/json")
 
 
 

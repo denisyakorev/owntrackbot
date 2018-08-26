@@ -119,6 +119,7 @@ class BotTestCase(TransactionTestCase):
 			self.assertEqual(out_message, elem[1]) 
 
 
+
 	def _test_embeddings(self):
 		equals = [
 			['?', {

@@ -19,7 +19,10 @@ from bot import views
 from django.urls import include
 
 urlpatterns = [
+    path('telebot/', include('telebot.urls')),
     path('bot/admin/', admin.site.urls),
     path('bot/', include('bot.urls')),
     path('core/', include('core.urls')),
+
 ]
+

@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
-    'bot'    
+    'bot',
+    'django_telegrambot',
 ]
 
 MIDDLEWARE = [
@@ -122,3 +123,32 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 TELEGRAM_TOKEN = '565321270:AAGVaNTz5a2pscli1_VnG0vh2Fv0CarejLM'
+
+
+DJANGO_TELEGRAMBOT = {
+
+    'MODE' : 'WEBHOOK', #(Optional [str]) # The default value is WEBHOOK,
+                        # otherwise you may use 'POLLING'
+                        # NB: if use polling you must provide to run
+                        # a management command that starts a worker
+
+    'WEBHOOK_SITE' : 'https://yakorev.info',
+    'WEBHOOK_PREFIX' : '/telebot', # (Optional[str]) # If this value is specified,
+                                  # a prefix is added to webhook url
+
+    'WEBHOOK_CERTIFICATE' : '/etc/letsencrypt/live/yakorev.info/cert.pem', # If your site use self-signed
+                         #certificate, must be set with location of your public key
+                         #certificate.(More info at https://core.telegram.org/bots/self-signed )
+
+    'STRICT_INIT': True, # If set to True, the server will fail to start if some of the
+                         # apps contain telegrambot.py files that cannot be successfully
+                         # imported.
+
+    'BOTS' : [
+        {
+           'TOKEN': '696957692:AAEHkUCR4iw2IUY_vSJVrCa-paR8FSPjdgo', #Your bot token.
+        },
+        #Other bots here with same structure.
+    ],
+
+}

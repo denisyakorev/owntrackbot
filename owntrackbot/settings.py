@@ -137,7 +137,7 @@ DJANGO_TELEGRAMBOT = {
     'WEBHOOK_PREFIX' : '/telebot', # (Optional[str]) # If this value is specified,
                                   # a prefix is added to webhook url
 
-    'WEBHOOK_CERTIFICATE' : '/etc/letsencrypt/live/yakorev.info/cert.pem', # If your site use self-signed
+    'WEBHOOK_CERTIFICATE' : 'cert.pem', # If your site use self-signed
                          #certificate, must be set with location of your public key
                          #certificate.(More info at https://core.telegram.org/bots/self-signed )
 
@@ -147,7 +147,7 @@ DJANGO_TELEGRAMBOT = {
 
     'BOTS' : [
         {
-           'TOKEN': '696957692:AAEHkUCR4iw2IUY_vSJVrCa-paR8FSPjbgo', #Your bot token.
+           'TOKEN': '696957692:AAEHkUCR4iw2IUY_vSJVrCa-paR8FSPjdgo', #Your bot token.
         },
         #Other bots here with same structure.
     ],

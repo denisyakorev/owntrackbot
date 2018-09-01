@@ -25,7 +25,7 @@ SECRET_KEY = 'n1x#92a49lyu@%4&9g83gd5t=hf%cza8_d_v@z8lx21s#8k15o'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'yakorev.info']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'yakorev.info', 'https://pacific-depths-67389.herokuapp.com/']
 
 
 # Application definition
@@ -147,7 +147,7 @@ DJANGO_TELEGRAMBOT = {
 
     'BOTS' : [
         {
-           'TOKEN': '696957692:AAEHkUCR4iw2IUY_vSJVrCa-paR8FSPjdgo', #Your bot token.
+           'TOKEN': '696957692:AAEHkUCR4iw2IUY_vSJVrCa-paR8FSPjbgo', #Your bot token.
         },
         #Other bots here with same structure.
     ],
